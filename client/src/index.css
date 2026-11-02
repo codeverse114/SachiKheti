@@ -540,6 +540,10 @@ a {
   margin-bottom: 24px;
 }
 
+.hero-mobile-logo-wrap {
+  display: none;
+}
+
 .hero-h1 {
   font-size: 3.25rem;
   font-weight: 800;
@@ -1915,6 +1919,31 @@ a {
 
   .hero-h1 {
     font-size: 2.5rem;
+  }
+
+  .hero-tagline-pill {
+    display: none !important;
+  }
+
+  .hero-mobile-logo-wrap {
+    display: block;
+    margin-bottom: 22px;
+    text-align: left;
+  }
+
+  .hero-mobile-logo-img {
+    width: 100%;
+    max-width: 260px;
+    height: auto;
+    border-radius: 18px;
+    border: 2px solid rgba(229, 152, 0, 0.4);
+    box-shadow: 0 10px 30px -6px rgba(10, 62, 34, 0.15);
+    background: #FFFFFF;
+    display: block;
+  }
+
+  .hero-image-wrapper {
+    display: none !important;
   }
 }
 
