@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowRight, MessageCircle, CheckCircle2, Leaf } from 'lucide-react';
+import { ArrowRight, MessageCircle, CheckCircle2 } from 'lucide-react';
 
 export default function Hero({ onExploreClick }) {
   const openDirectWhatsApp = () => {
@@ -12,16 +12,7 @@ export default function Hero({ onExploreClick }) {
       <div className="container hero-grid">
         {/* Left Column: Brand Story & CTAs */}
         <div className="hero-content-col">
-          {/* Tagline Pill (Visible on Desktop) */}
-          <div className="hero-tagline-pill">
-            <Leaf size={16} color="#15733E" />
-            <span className="hero-tagline-text">
-              LAMMA FARMER PRODUCER CO. LTD.
-            </span>
-            <span className="badge badge-gold">100% PURE</span>
-          </div>
-
-          {/* Official Brand Logo (Replaces pill on Small Screens / Mobile) */}
+          {/* Official Brand Logo (Displayed on Small Screens / Mobile) */}
           <div className="hero-mobile-logo-wrap">
             <img
               src="/assets/brand/sachi-kheti-logo-full.jpg"
