@@ -1,12 +1,14 @@
-// Prisma schema for local development (SQLite)
-// For AWS RDS PostgreSQL deployment, see schema.postgresql.prisma or run: npm run use:rds
+// Prisma schema for AWS RDS PostgreSQL deployment
+// To use on AWS EC2 with AWS RDS:
+// 1. cp prisma/schema.postgresql.prisma prisma/schema.prisma
+// 2. npx prisma generate && npx prisma db push
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -35,14 +37,14 @@ model Product {
   titlePunjabi String
   description  String
   price        Float
-  unit         String   // e.g. "1 L", "1 kg", "Piece", "Unit"
+  unit         String
   imageUrl     String
   categoryId   String
   category     Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   inStock      Boolean  @default(true)
   stockCount   Int      @default(50)
   featured     Boolean  @default(false)
-  specs        String?  // JSON string of key-value specifications
+  specs        String?  @db.Text
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 }
@@ -55,11 +57,11 @@ model Order {
   address       String
   city          String   @default("Fatehabad")
   pincode       String?
-  items         String   // JSON string of ordered items [{ productId, title, price, quantity }]
+  items         String   @db.Text
   totalAmount   Float
-  paymentMethod String   // "RAZORPAY" or "WHATSAPP"
-  paymentStatus String   // "PENDING", "COMPLETED", "FAILED"
-  orderStatus   String   @default("PENDING") // "PENDING", "CONFIRMED", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED"
+  paymentMethod String
+  paymentStatus String
+  orderStatus   String   @default("PENDING")
   razorpayId    String?
   notes         String?
   createdAt     DateTime @default(now())

@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: sachikheti-app
+    env: node
+    plan: free
+    buildCommand: npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        value: postgresql://sachiketi_user:JoEREBMX6RjAcCQlVzDCKWgr49A9zUYm@dpg-dbkbc3ss728c73cm0ec0-a.oregon-postgres.render.com/sachiketi?sslmode=require
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: ADMIN_USERNAME
+        value: SachiKhetiAdmin
+      - key: ADMIN_PASSWORD
+        value: Sachi@Kheti123
+      - key: WHATSAPP_PHONE
+        value: "918295886832"
+      - key: RAZORPAY_KEY_ID
+        value: rzp_test_mock_sachikheti
+      - key: RAZORPAY_KEY_SECRET
+        value: rzp_test_secret_sachikheti
+
