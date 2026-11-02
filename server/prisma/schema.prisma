@@ -1,0 +1,76 @@
+// Prisma schema for local development (SQLite)
+// For AWS RDS PostgreSQL deployment, see schema.postgresql.prisma or run: npm run use:rds
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Admin {
+  id           String   @id @default(uuid())
+  username     String   @unique
+  passwordHash String
+  role         String   @default("SUPERADMIN")
+  createdAt    DateTime @default(now())
+}
+
+model Category {
+  id          String    @id @default(uuid())
+  name        String
+  namePunjabi String
+  slug        String    @unique
+  description String?
+  icon        String?
+  products    Product[]
+  createdAt   DateTime  @default(now())
+}
+
+model Product {
+  id           String   @id @default(uuid())
+  title        String
+  titlePunjabi String
+  description  String
+  price        Float
+  unit         String   // e.g. "1 L", "1 kg", "Piece", "Unit"
+  imageUrl     String
+  categoryId   String
+  category     Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  inStock      Boolean  @default(true)
+  stockCount   Int      @default(50)
+  featured     Boolean  @default(false)
+  specs        String?  // JSON string of key-value specifications
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Order {
+  id            String   @id @default(uuid())
+  orderNumber   String   @unique
+  customerName  String
+  customerPhone String
+  address       String
+  city          String   @default("Fatehabad")
+  pincode       String?
+  items         String   // JSON string of ordered items [{ productId, title, price, quantity }]
+  totalAmount   Float
+  paymentMethod String   // "RAZORPAY" or "WHATSAPP"
+  paymentStatus String   // "PENDING", "COMPLETED", "FAILED"
+  orderStatus   String   @default("PENDING") // "PENDING", "CONFIRMED", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED"
+  razorpayId    String?
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Banner {
+  id          String   @id @default(uuid())
+  title       String
+  message     String
+  isActive    Boolean  @default(true)
+  link        String?
+  createdAt   DateTime @default(now())
+}

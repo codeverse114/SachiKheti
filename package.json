@@ -1,0 +1,15 @@
+{
+  "name": "sachikheti-platform",
+  "version": "1.0.0",
+  "description": "Full-Stack Agricultural E-Commerce Platform for SachiKheti (LFPC)",
+  "private": true,
+  "scripts": {
+    "install:all": "cd server && npm install && cd ../client && npm install",
+    "dev:server": "cd server && npm run dev",
+    "dev:client": "cd client && npm run dev",
+    "build:client": "cd client && npm run build",
+    "start:server": "cd server && npm start",
+    "seed:db": "cd server && node prisma/seed.js",
+    "use:rds": "powershell -Command \"Copy-Item -Force server/prisma/schema.postgresql.prisma server/prisma/schema.prisma\""
+  }
+}

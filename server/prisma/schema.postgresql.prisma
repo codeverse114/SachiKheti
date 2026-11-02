@@ -1,0 +1,78 @@
+// Prisma schema for AWS RDS PostgreSQL deployment
+// To use on AWS EC2 with AWS RDS:
+// 1. cp prisma/schema.postgresql.prisma prisma/schema.prisma
+// 2. npx prisma generate && npx prisma db push
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Admin {
+  id           String   @id @default(uuid())
+  username     String   @unique
+  passwordHash String
+  role         String   @default("SUPERADMIN")
+  createdAt    DateTime @default(now())
+}
+
+model Category {
+  id          String    @id @default(uuid())
+  name        String
+  namePunjabi String
+  slug        String    @unique
+  description String?
+  icon        String?
+  products    Product[]
+  createdAt   DateTime  @default(now())
+}
+
+model Product {
+  id           String   @id @default(uuid())
+  title        String
+  titlePunjabi String
+  description  String
+  price        Float
+  unit         String
+  imageUrl     String
+  categoryId   String
+  category     Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  inStock      Boolean  @default(true)
+  stockCount   Int      @default(50)
+  featured     Boolean  @default(false)
+  specs        String?  @db.Text
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Order {
+  id            String   @id @default(uuid())
+  orderNumber   String   @unique
+  customerName  String
+  customerPhone String
+  address       String
+  city          String   @default("Fatehabad")
+  pincode       String?
+  items         String   @db.Text
+  totalAmount   Float
+  paymentMethod String
+  paymentStatus String
+  orderStatus   String   @default("PENDING")
+  razorpayId    String?
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Banner {
+  id          String   @id @default(uuid())
+  title       String
+  message     String
+  isActive    Boolean  @default(true)
+  link        String?
+  createdAt   DateTime @default(now())
+}
