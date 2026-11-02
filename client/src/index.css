@@ -359,16 +359,17 @@ a {
   }
 }
 
-/* Navbar */
+/* Navbar Glass Theme */
 .navbar {
   position: sticky;
   top: 0;
   z-index: 100;
-  background: rgba(255, 255, 255, 0.94);
-  backdrop-filter: blur(14px);
-  border-bottom: 1px solid var(--border-light);
-  box-shadow: var(--shadow-sm);
-  transition: all 0.3s ease;
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-bottom: 1px solid rgba(229, 152, 0, 0.15);
+  box-shadow: 0 4px 30px rgba(10, 62, 34, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.85);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .nav-container {
@@ -474,8 +475,11 @@ a {
 
 .cart-btn {
   position: relative;
-  background: var(--green-50);
-  border: 1px solid var(--green-100);
+  background: rgba(240, 250, 244, 0.75);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(21, 115, 62, 0.22);
+  box-shadow: 0 2px 8px rgba(10, 62, 34, 0.05);
   color: var(--green-900);
   padding: 10px 18px;
   border-radius: var(--radius-full);
@@ -488,7 +492,8 @@ a {
 }
 
 .cart-btn:hover {
-  background: var(--green-100);
+  background: rgba(227, 245, 234, 0.95);
+  border-color: var(--green-600);
   transform: translateY(-1px);
 }
 
