@@ -1,7 +1,7 @@
 import React from 'react';
 import { ArrowRight, MessageCircle, CheckCircle2 } from 'lucide-react';
 
-export default function Hero({ onExploreClick }) {
+export default function Hero({ onExploreClick, onNavigateStory }) {
   const openDirectWhatsApp = () => {
     const text = encodeURIComponent("Hello SachiKheti (LFPC) Team! I would like to inquire about your pure farm products and place an order.");
     window.open(`https://wa.me/918295886832?text=${text}`, '_blank');
@@ -48,9 +48,15 @@ export default function Hero({ onExploreClick }) {
               <span>Order on WhatsApp</span>
             </button>
 
-            <a href="#story" className="btn btn-secondary hero-btn">
+            <button
+              onClick={() => {
+                if (onNavigateStory) onNavigateStory();
+                else window.location.href = '/story';
+              }}
+              className="btn btn-secondary hero-btn"
+            >
               <span>LFPC Story</span>
-            </a>
+            </button>
           </div>
 
           {/* Value Badges */}

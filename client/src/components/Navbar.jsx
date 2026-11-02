@@ -8,7 +8,7 @@ const BRAND_NAMES = [
   { text: 'सच्ची खेती', lang: 'हिन्दी', className: 'font-hindi' },
 ];
 
-export default function Navbar({ onOpenAdmin, onOpenTracker, onSelectCategory }) {
+export default function Navbar({ currentPath = '/', onNavigate, onOpenAdmin, onOpenTracker, onSelectCategory }) {
   const { totalItems, setIsCartOpen } = useCart();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [currentBrandIndex, setCurrentBrandIndex] = useState(0);
@@ -50,11 +50,12 @@ export default function Navbar({ onOpenAdmin, onOpenTracker, onSelectCategory })
         <div className="container nav-container">
           {/* Brand Lockup with Circular Rolling Loop */}
           <a
-            href="#"
+            href="/"
             className="nav-logo-group"
             onClick={(e) => {
               e.preventDefault();
-              window.scrollTo({ top: 0, behavior: 'smooth' });
+              if (onNavigate) onNavigate('/');
+              else window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
           >
             <img
@@ -101,7 +102,14 @@ export default function Navbar({ onOpenAdmin, onOpenTracker, onSelectCategory })
                 </a>
               </li>
               <li>
-                <a href="#story" className="nav-link">
+                <a
+                  href="/story"
+                  className={`nav-link ${currentPath === '/story' ? 'active' : ''}`}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    if (onNavigate) onNavigate('/story');
+                  }}
+                >
                   Our Story
                 </a>
               </li>
@@ -227,14 +235,16 @@ export default function Navbar({ onOpenAdmin, onOpenTracker, onSelectCategory })
               </button>
             </li>
             <li>
-              <a
-                href="#story"
-                className="mobile-nav-item"
-                onClick={() => setMobileMenuOpen(false)}
+              <button
+                className={`mobile-nav-item ${currentPath === '/story' ? 'active' : ''}`}
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  if (onNavigate) onNavigate('/story');
+                }}
               >
                 <span>📖 Our Heritage & Story</span>
                 <ChevronRight size={16} color="#7A8B80" />
-              </a>
+              </button>
             </li>
           </ul>
 

@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { CartProvider, useCart } from './context/CartContext';
 import AnnouncementBar from './components/AnnouncementBar';
 import Navbar from './components/Navbar';
 import Hero from './components/Hero';
-import StorySection from './components/StorySection';
+import StoryPage from './components/StoryPage';
 import ProductCatalog from './components/ProductCatalog';
 import ProductDetailModal from './components/ProductDetailModal';
 import CartDrawer from './components/CartDrawer';
@@ -19,10 +19,63 @@ function MainApp() {
   const [isAdminOpen, setIsAdminOpen] = useState(false);
   const [isTrackerOpen, setIsTrackerOpen] = useState(false);
 
+  // Client-side URL route state for '/' and '/story'
+  const getInitialPath = () => {
+    if (typeof window === 'undefined') return '/';
+    const p = window.location.pathname.toLowerCase();
+    return p === '/story' || p === '/our-story' ? '/story' : '/';
+  };
+
+  const [currentPath, setCurrentPath] = useState(getInitialPath);
+
+  useEffect(() => {
+    const handlePopState = () => {
+      setCurrentPath(getInitialPath());
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  const navigateTo = (path) => {
+    if (window.location.pathname !== path) {
+      window.history.pushState(null, '', path);
+    }
+    setCurrentPath(path);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   const handleExploreClick = () => {
-    const catalogElem = document.getElementById('catalog');
-    if (catalogElem) {
-      catalogElem.scrollIntoView({ behavior: 'smooth' });
+    if (currentPath !== '/') {
+      navigateTo('/');
+      setTimeout(() => {
+        const catalogElem = document.getElementById('catalog');
+        if (catalogElem) {
+          catalogElem.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 150);
+    } else {
+      const catalogElem = document.getElementById('catalog');
+      if (catalogElem) {
+        catalogElem.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+  };
+
+  const handleSelectCategory = (cat) => {
+    setSelectedCategory(cat);
+    if (currentPath !== '/') {
+      navigateTo('/');
+      setTimeout(() => {
+        const catalogElem = document.getElementById('catalog');
+        if (catalogElem) {
+          catalogElem.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 150);
+    } else {
+      const catalogElem = document.getElementById('catalog');
+      if (catalogElem) {
+        catalogElem.scrollIntoView({ behavior: 'smooth' });
+      }
     }
   };
 
@@ -31,28 +84,40 @@ function MainApp() {
       {/* Top Promotional Announcement Ribbon */}
       <AnnouncementBar />
 
-      {/* Main Navigation Header */}
+      {/* Main Glass Navigation Header */}
       <Navbar
+        currentPath={currentPath}
+        onNavigate={navigateTo}
         onOpenAdmin={() => setIsAdminOpen(true)}
         onOpenTracker={() => setIsTrackerOpen(true)}
-        onSelectCategory={(cat) => setSelectedCategory(cat)}
+        onSelectCategory={handleSelectCategory}
       />
 
-      {/* Hero Showcase with Logo & Punjabi Slogan */}
-      <Hero onExploreClick={handleExploreClick} />
+      {/* Dedicated Page Routing */}
+      {currentPath === '/story' ? (
+        <StoryPage onExploreClick={handleExploreClick} />
+      ) : (
+        <>
+          {/* Home Showcase */}
+          <Hero
+            onExploreClick={handleExploreClick}
+            onNavigateStory={() => navigateTo('/story')}
+          />
 
-      {/* Brand Heritage & Cooperative Story */}
-      <StorySection />
-
-      {/* Dynamic Product Catalog across 5 Agricultural Categories */}
-      <ProductCatalog
-        selectedCategory={selectedCategory}
-        onSelectCategory={(cat) => setSelectedCategory(cat)}
-        onOpenProductDetail={(prod) => setActiveProductDetail(prod)}
-      />
+          {/* Dynamic Product Catalog across Agricultural Categories */}
+          <ProductCatalog
+            selectedCategory={selectedCategory}
+            onSelectCategory={handleSelectCategory}
+            onOpenProductDetail={(prod) => setActiveProductDetail(prod)}
+          />
+        </>
+      )}
 
       {/* Footer */}
-      <Footer onSelectCategory={(cat) => setSelectedCategory(cat)} />
+      <Footer
+        onNavigate={navigateTo}
+        onSelectCategory={handleSelectCategory}
+      />
 
       {/* Modals & Drawers */}
       <CartDrawer />

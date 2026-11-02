@@ -1,7 +1,7 @@
 import React from 'react';
 import { Phone, Mail, MapPin, MessageCircle } from 'lucide-react';
 
-export default function Footer({ onSelectCategory }) {
+export default function Footer({ onNavigate, onSelectCategory }) {
   return (
     <footer className="footer-section">
       <div className="container">
@@ -68,6 +68,19 @@ export default function Footer({ onSelectCategory }) {
               <li>
                 <a href="#catalog" onClick={() => onSelectCategory('machinery')} className="footer-link">
                   Tractor Rotavators & Sprayers
+                </a>
+              </li>
+              <li>
+                <a
+                  href="/story"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    if (onNavigate) onNavigate('/story');
+                    else window.location.href = '/story';
+                  }}
+                  className="footer-link"
+                >
+                  Our Heritage & Cooperative Story
                 </a>
               </li>
               <li>

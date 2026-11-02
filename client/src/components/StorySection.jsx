@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShieldCheck, Users, Sun, Sparkles } from 'lucide-react';
+import { ShieldCheck, Users, Sun } from 'lucide-react';
 
 export default function StorySection() {
   return (
@@ -7,10 +7,6 @@ export default function StorySection() {
       <div className="container">
         {/* Section Header */}
         <div className="story-header">
-          <span className="badge badge-green" style={{ marginBottom: '12px' }}>
-            <Sparkles size={14} color="#15733E" />
-            Our Heritage & Roots
-          </span>
           <h2 className="story-h2">
             The Story Behind <span className="text-gradient-green font-gurmukhi">ਸੱਚੀ</span>{' '}
             <span className="text-gradient-gold font-gurmukhi">ਖੇਤੀ</span>
