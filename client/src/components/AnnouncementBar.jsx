@@ -3,8 +3,8 @@ import { Sparkles, X } from 'lucide-react';
 
 export default function AnnouncementBar() {
   const [banner, setBanner] = useState({
-    title: '🌾 SachiKheti Harvest Offer',
-    message: '100% Pure Vedic Desi Ghee & Pinnis | Direct Farmer Pricing & 1-Click WhatsApp Ordering!',
+    title: '🌾 SachiKheti Festive Harvest Offer',
+    message: 'Get 10% off on Pure Desi Ghee & Pinnis using code SACHI10! WhatsApp Direct Delivery available.',
   });
   const [visible, setVisible] = useState(true);
 
@@ -22,27 +22,28 @@ export default function AnnouncementBar() {
   if (!visible) return null;
 
   return (
-    <div className="announcement-bar">
-      <Sparkles size={16} color="#FBBF24" />
-      <span>
-        <strong>{banner.title}:</strong> {banner.message}
-      </span>
+    <aside className="announcement-bar" role="banner" aria-label="Festive Announcement">
+      <div className="announcement-content">
+        <Sparkles size={13} color="#FBBF24" className="announcement-sparkle" />
+        
+        {/* Full text for Desktop & Tablet */}
+        <span className="announcement-text-desktop">
+          <strong>{banner.title}:</strong> {banner.message}
+        </span>
+
+        {/* Compact Single-line text for Mobile screens */}
+        <span className="announcement-text-mobile">
+          🌾 <strong>10% OFF:</strong> Use code <span className="announcement-code">SACHI10</span> • Pure Ghee & Sweets!
+        </span>
+      </div>
+
       <button
         onClick={() => setVisible(false)}
-        style={{
-          background: 'none',
-          border: 'none',
-          color: '#FFFFFF',
-          cursor: 'pointer',
-          marginLeft: '12px',
-          display: 'flex',
-          alignItems: 'center',
-          opacity: 0.8,
-        }}
-        title="Dismiss announcement"
+        className="announcement-close-btn"
+        aria-label="Dismiss announcement banner"
       >
-        <X size={15} />
+        <X size={13} />
       </button>
-    </div>
+    </aside>
   );
 }
