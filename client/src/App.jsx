@@ -16,21 +16,32 @@ function MainApp() {
   const { isCheckoutOpen, setIsCheckoutOpen } = useCart();
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [activeProductDetail, setActiveProductDetail] = useState(null);
-  const [isAdminOpen, setIsAdminOpen] = useState(false);
   const [isTrackerOpen, setIsTrackerOpen] = useState(false);
 
-  // Client-side URL route state for '/' and '/story'
+  // Client-side URL route state for '/', '/story', and '/adminlog'
   const getInitialPath = () => {
     if (typeof window === 'undefined') return '/';
     const p = window.location.pathname.toLowerCase();
-    return p === '/story' || p === '/our-story' ? '/story' : '/';
+    if (p === '/adminlog') return '/adminlog';
+    if (p === '/story' || p === '/our-story') return '/story';
+    return '/';
   };
 
   const [currentPath, setCurrentPath] = useState(getInitialPath);
+  const [isAdminOpen, setIsAdminOpen] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return window.location.pathname.toLowerCase() === '/adminlog';
+  });
 
   useEffect(() => {
     const handlePopState = () => {
-      setCurrentPath(getInitialPath());
+      const path = getInitialPath();
+      setCurrentPath(path);
+      if (path === '/adminlog') {
+        setIsAdminOpen(true);
+      } else {
+        setIsAdminOpen(false);
+      }
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
@@ -41,7 +52,17 @@ function MainApp() {
       window.history.pushState(null, '', path);
     }
     setCurrentPath(path);
+    if (path === '/adminlog') {
+      setIsAdminOpen(true);
+    }
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleCloseAdmin = () => {
+    setIsAdminOpen(false);
+    if (currentPath === '/adminlog') {
+      navigateTo('/');
+    }
   };
 
   const handleExploreClick = () => {
@@ -88,7 +109,6 @@ function MainApp() {
       <Navbar
         currentPath={currentPath}
         onNavigate={navigateTo}
-        onOpenAdmin={() => setIsAdminOpen(true)}
         onOpenTracker={() => setIsTrackerOpen(true)}
         onSelectCategory={handleSelectCategory}
       />
@@ -137,8 +157,9 @@ function MainApp() {
         <OrderTrackModal onClose={() => setIsTrackerOpen(false)} />
       )}
 
+      {/* Superadmin Portal - Hidden from public UI, accessible only via /adminlog */}
       {isAdminOpen && (
-        <AdminDashboard onClose={() => setIsAdminOpen(false)} />
+        <AdminDashboard onClose={handleCloseAdmin} />
       )}
     </div>
   );

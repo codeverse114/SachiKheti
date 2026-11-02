@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShoppingBag, ShieldCheck, Truck, Menu, X, MessageCircle, ChevronRight, Sparkles } from 'lucide-react';
+import { ShoppingBag, Truck, Menu, X, MessageCircle, ChevronRight, Sparkles } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 
 const BRAND_NAMES = [
@@ -139,16 +139,6 @@ export default function Navbar({ currentPath = '/', onNavigate, onOpenAdmin, onO
               {totalItems > 0 && <span className="cart-badge">{totalItems}</span>}
             </button>
 
-            {/* Superadmin Button (Desktop & Tablet) */}
-            <button
-              onClick={onOpenAdmin}
-              className="btn btn-gold btn-sm nav-hide-mobile"
-              title="Superadmin Login"
-            >
-              <ShieldCheck size={16} />
-              <span>Admin</span>
-            </button>
-
             {/* Mobile menu hamburger (Mobile & Tablet) */}
             <button
               className="nav-mobile-toggle"
@@ -273,18 +263,6 @@ export default function Navbar({ currentPath = '/', onNavigate, onOpenAdmin, onO
               <MessageCircle size={17} />
               <span>Direct WhatsApp Order</span>
             </a>
-
-            <button
-              onClick={() => {
-                setMobileMenuOpen(false);
-                onOpenAdmin();
-              }}
-              className="btn btn-gold"
-              style={{ width: '100%', justifyContent: 'center' }}
-            >
-              <ShieldCheck size={17} />
-              <span>Superadmin Portal</span>
-            </button>
           </div>
         </div>
 
