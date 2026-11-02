@@ -238,16 +238,16 @@ export default function AdminDashboard({ onClose }) {
   return (
     <div className="modal-overlay" onClick={onClose} style={{ zIndex: 400 }}>
       <div
-        className="modal-content"
+        className="modal-content admin-dashboard-modal"
         onClick={(e) => e.stopPropagation()}
-        style={{ maxWidth: '1050px', width: '95vw', height: '90vh', padding: '32px' }}
       >
         {/* Close Button */}
         <button
           onClick={onClose}
-          style={{ position: 'absolute', top: '24px', right: '24px', background: 'none', border: 'none', cursor: 'pointer', color: '#7A8B80' }}
+          className="modal-close-btn"
+          aria-label="Close Admin Modal"
         >
-          <X size={24} />
+          <X size={22} />
         </button>
 
         {!token || !adminUser ? (
@@ -399,7 +399,8 @@ export default function AdminDashboard({ onClose }) {
                 orders.length === 0 ? (
                   <div style={{ textAlign: 'center', padding: '40px', color: '#7A8B80' }}>No customer orders placed yet.</div>
                 ) : (
-                  <table className="data-table">
+                  <div className="admin-table-container">
+                    <table className="data-table">
                     <thead>
                       <tr>
                         <th>Order ID</th>
@@ -452,6 +453,7 @@ export default function AdminDashboard({ onClose }) {
                       ))}
                     </tbody>
                   </table>
+                  </div>
                 )
               ) : (
                 /* Products Table */
@@ -463,7 +465,8 @@ export default function AdminDashboard({ onClose }) {
                     </button>
                   </div>
 
-                  <table className="data-table">
+                  <div className="admin-table-container">
+                    <table className="data-table">
                     <thead>
                       <tr>
                         <th>Image</th>
@@ -519,6 +522,7 @@ export default function AdminDashboard({ onClose }) {
                       ))}
                     </tbody>
                   </table>
+                  </div>
                 </div>
               )}
             </div>

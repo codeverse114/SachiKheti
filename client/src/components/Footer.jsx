@@ -1,34 +1,34 @@
 import React from 'react';
-import { Phone, Mail, MapPin, Heart, ShieldCheck, Sparkles, MessageCircle } from 'lucide-react';
+import { Phone, Mail, MapPin, MessageCircle } from 'lucide-react';
 
 export default function Footer({ onSelectCategory }) {
   return (
-    <footer style={{ backgroundColor: '#052112', color: '#E3F5EA', paddingTop: '70px', paddingBottom: '40px', borderTop: '4px solid #E59800' }}>
+    <footer className="footer-section">
       <div className="container">
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '40px', marginBottom: '50px' }}>
+        <div className="footer-grid">
           {/* Brand Info */}
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+          <div className="footer-col">
+            <div className="footer-brand-header">
               <img
                 src="/assets/brand/sachi-kheti-emblem.jpg"
                 alt="SachiKheti"
-                style={{ width: '50px', height: '50px', borderRadius: '10px' }}
+                className="footer-brand-logo"
               />
               <div>
-                <div className="font-gurmukhi" style={{ fontSize: '1.4rem', color: '#FBBF24', lineHeight: 1.1 }}>
+                <div className="font-gurmukhi footer-brand-name">
                   ਸੱਚੀ ਖੇਤੀ
                 </div>
-                <div style={{ fontSize: '0.75rem', letterSpacing: '0.06em', color: '#81C784' }}>
+                <div className="footer-brand-sub">
                   by LFPC (Lamma Farmer Producer Co. Ltd.)
                 </div>
               </div>
             </div>
 
-            <p className="font-gurmukhi" style={{ fontSize: '1.05rem', color: '#FCD34D', marginBottom: '14px' }}>
+            <p className="font-gurmukhi footer-slogan">
               "ਚੰਗੀ ਸੋਚ ਸਖ਼ਤ ਮਿਹਨਤ, ਫਿਰ ਹੁੰਦੀ ਰੱਬ ਦੀ ਰਹਿਮਤ"
             </p>
 
-            <p style={{ fontSize: '0.88rem', color: '#A5D6A7', lineHeight: 1.6, marginBottom: '20px' }}>
+            <p className="footer-desc">
               An authentic agricultural producer company initiative empowering 400+ farmer families to deliver
               chemical-free Vedic Bilona cow ghee, pure sweets, and certified farming tools.
             </p>
@@ -37,7 +37,7 @@ export default function Footer({ onSelectCategory }) {
               href="https://wa.me/918295886832"
               target="_blank"
               rel="noreferrer"
-              className="btn btn-whatsapp btn-sm"
+              className="btn btn-whatsapp btn-sm footer-whatsapp-btn"
             >
               <MessageCircle size={15} />
               <span>Connect on WhatsApp</span>
@@ -45,33 +45,33 @@ export default function Footer({ onSelectCategory }) {
           </div>
 
           {/* Catalog Categories */}
-          <div>
-            <h4 style={{ color: '#FFFFFF', fontSize: '1.1rem', marginBottom: '18px', borderBottom: '2px solid #15733E', paddingBottom: '8px', display: 'inline-block' }}>
+          <div className="footer-col">
+            <h4 className="footer-col-title">
               Product Catalog
             </h4>
-            <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '0.9rem' }}>
+            <ul className="footer-links-list">
               <li>
-                <a href="#catalog" onClick={() => onSelectCategory('dairy')} style={{ color: '#A5D6A7' }} onMouseEnter={(e) => e.target.style.color = '#FBBF24'} onMouseLeave={(e) => e.target.style.color = '#A5D6A7'}>
+                <a href="#catalog" onClick={() => onSelectCategory('dairy')} className="footer-link">
                   Pure Cow Ghee & A2 Dairy
                 </a>
               </li>
               <li>
-                <a href="#catalog" onClick={() => onSelectCategory('sweets')} style={{ color: '#A5D6A7' }} onMouseEnter={(e) => e.target.style.color = '#FBBF24'} onMouseLeave={(e) => e.target.style.color = '#A5D6A7'}>
+                <a href="#catalog" onClick={() => onSelectCategory('sweets')} className="footer-link">
                   Desi Ghee Atta Pinnis & Sweets
                 </a>
               </li>
               <li>
-                <a href="#catalog" onClick={() => onSelectCategory('manure')} style={{ color: '#A5D6A7' }} onMouseEnter={(e) => e.target.style.color = '#FBBF24'} onMouseLeave={(e) => e.target.style.color = '#A5D6A7'}>
+                <a href="#catalog" onClick={() => onSelectCategory('manure')} className="footer-link">
                   Organic Vermicompost & Fertilizers
                 </a>
               </li>
               <li>
-                <a href="#catalog" onClick={() => onSelectCategory('machinery')} style={{ color: '#A5D6A7' }} onMouseEnter={(e) => e.target.style.color = '#FBBF24'} onMouseLeave={(e) => e.target.style.color = '#A5D6A7'}>
+                <a href="#catalog" onClick={() => onSelectCategory('machinery')} className="footer-link">
                   Tractor Rotavators & Sprayers
                 </a>
               </li>
               <li>
-                <a href="#catalog" onClick={() => onSelectCategory('produce')} style={{ color: '#A5D6A7' }} onMouseEnter={(e) => e.target.style.color = '#FBBF24'} onMouseLeave={(e) => e.target.style.color = '#A5D6A7'}>
+                <a href="#catalog" onClick={() => onSelectCategory('produce')} className="footer-link">
                   Raw Mustard Oil & Forest Honey
                 </a>
               </li>
@@ -79,35 +79,36 @@ export default function Footer({ onSelectCategory }) {
           </div>
 
           {/* Contact & Support */}
-          <div>
-            <h4 style={{ color: '#FFFFFF', fontSize: '1.1rem', marginBottom: '18px', borderBottom: '2px solid #15733E', paddingBottom: '8px', display: 'inline-block' }}>
+          <div className="footer-col">
+            <h4 className="footer-col-title">
               Farmer Producer Office
             </h4>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', fontSize: '0.9rem', color: '#A5D6A7' }}>
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
-                <MapPin size={18} color="#FBBF24" style={{ flexShrink: 0, marginTop: '2px' }} />
+            <div className="footer-contact-list">
+              <div className="footer-contact-item">
+                <MapPin size={18} color="#FBBF24" className="footer-contact-icon" />
                 <span>1st Floor, Aggerwal Colony, Fatehabad, Haryana, India - 125050</span>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <Phone size={18} color="#FBBF24" style={{ flexShrink: 0 }} />
-                <span>+91-8295886832</span>
+              <div className="footer-contact-item">
+                <Phone size={18} color="#FBBF24" className="footer-contact-icon" />
+                <a href="tel:+918295886832" className="footer-link-active">+91-8295886832</a>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <Mail size={18} color="#FBBF24" style={{ flexShrink: 0 }} />
-                <span>codeverse114@gmail.com</span>
+              <div className="footer-contact-item">
+                <Mail size={18} color="#FBBF24" className="footer-contact-icon" />
+                <a href="mailto:codeverse114@gmail.com" className="footer-link-active">codeverse114@gmail.com</a>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Bottom Credits Bar */}
-        <div style={{ borderTop: '1px solid rgba(227, 245, 234, 0.15)', paddingTop: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', fontSize: '0.82rem', color: '#81C784' }}>
+        {/* Bottom Bar */}
+        <div className="footer-bottom-bar">
           <div>
-            © {new Date().getFullYear()} <strong>SachiKheti</strong> (Lamma Farmer Producer Co. Ltd.). All rights reserved.
+            © {new Date().getFullYear()} SachiKheti (LFPC Ltd.). All rights reserved.
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span>Crafted with pride by</span>
-            <strong style={{ color: '#FBBF24' }}>CodeVerse</strong>
+          <div className="footer-bottom-links">
+            <span style={{ color: '#FBBF24' }}>100% Direct Farmer Produce</span>
+            <span>•</span>
+            <span>FSSAI Certified Standards</span>
           </div>
         </div>
       </div>

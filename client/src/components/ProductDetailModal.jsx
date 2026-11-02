@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, ShoppingBag, MessageCircle, ShieldCheck, Check, Sparkles } from 'lucide-react';
+import { X, ShoppingBag, MessageCircle, ShieldCheck, Check } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 
 export default function ProductDetailModal({ product, onClose }) {
@@ -32,104 +32,93 @@ export default function ProductDetailModal({ product, onClose }) {
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '720px' }}>
+      <div className="modal-content product-detail-modal" onClick={(e) => e.stopPropagation()}>
         {/* Close Button */}
         <button
           onClick={onClose}
-          style={{
-            position: 'absolute',
-            top: '20px',
-            right: '20px',
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            color: '#7A8B80',
-          }}
+          className="modal-close-btn"
+          aria-label="Close modal"
         >
           <X size={22} />
         </button>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '28px' }}>
+        <div className="product-detail-grid">
           {/* Image */}
-          <div>
+          <div className="product-detail-img-col">
             <img
               src={product.imageUrl}
               alt={product.title}
-              style={{
-                width: '100%',
-                height: '320px',
-                objectFit: 'cover',
-                borderRadius: '16px',
-                border: '1px solid #E7E3D4',
-              }}
+              className="product-detail-img"
             />
           </div>
 
           {/* Details */}
-          <div>
-            <div className="font-gurmukhi" style={{ fontSize: '1.1rem', color: '#15733E', marginBottom: '6px' }}>
+          <div className="product-detail-info-col">
+            <div className="font-gurmukhi product-detail-punjabi">
               {product.titlePunjabi}
             </div>
-            <h2 style={{ fontSize: '1.6rem', fontWeight: 800, marginBottom: '12px' }}>
+            <h2 className="product-detail-title">
               {product.title}
             </h2>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '18px' }}>
+            <div className="product-detail-badges">
               <span className="badge badge-green">In Stock ({product.stockCount} available)</span>
               <span className="badge badge-gold">LFPC Guaranteed</span>
             </div>
 
-            <div style={{ marginBottom: '18px' }}>
-              <span style={{ fontSize: '0.85rem', color: '#7A8B80' }}>Price per {product.unit}:</span>
-              <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#0A3E22' }}>
+            <div className="product-detail-price-box">
+              <span className="product-detail-unit-label">Price per {product.unit}:</span>
+              <div className="product-detail-price">
                 ₹ {product.price.toLocaleString('en-IN')}
               </div>
             </div>
 
-            <p style={{ fontSize: '0.95rem', color: '#4A5B50', marginBottom: '20px', lineHeight: 1.5 }}>
+            <p className="product-detail-desc">
               {product.description}
             </p>
 
             {/* Specs Table */}
             {Object.keys(parsedSpecs).length > 0 && (
-              <div style={{ background: '#FAF9F3', borderRadius: '12px', padding: '14px', marginBottom: '24px', border: '1px solid #E7E3D4' }}>
-                <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#B46F00', textTransform: 'uppercase', marginBottom: '8px' }}>
+              <div className="product-specs-box">
+                <div className="product-specs-title">
                   Specifications & Purity
                 </div>
                 {Object.entries(parsedSpecs).map(([key, val]) => (
-                  <div key={key} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', padding: '4px 0', borderBottom: '1px dashed #E7E3D4' }}>
-                    <span style={{ color: '#7A8B80' }}>{key}:</span>
-                    <strong style={{ color: '#122117' }}>{String(val)}</strong>
+                  <div key={key} className="product-specs-row">
+                    <span className="product-specs-key">{key}:</span>
+                    <strong className="product-specs-val">{String(val)}</strong>
                   </div>
                 ))}
               </div>
             )}
 
             {/* Quantity Stepper & Actions */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '16px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #E7E3D4', borderRadius: '30px', background: '#FFFFFF' }}>
+            <div className="product-detail-actions-row">
+              <div className="product-quantity-stepper">
                 <button
                   onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                  style={{ width: '36px', height: '36px', border: 'none', background: 'none', cursor: 'pointer', fontWeight: 'bold' }}
+                  className="product-stepper-btn"
+                  aria-label="Decrease quantity"
                 >
                   -
                 </button>
-                <span style={{ width: '36px', textAlign: 'center', fontWeight: 'bold' }}>{quantity}</span>
+                <span className="product-stepper-val">{quantity}</span>
                 <button
                   onClick={() => setQuantity(quantity + 1)}
-                  style={{ width: '36px', height: '36px', border: 'none', background: 'none', cursor: 'pointer', fontWeight: 'bold' }}
+                  className="product-stepper-btn"
+                  aria-label="Increase quantity"
                 >
                   +
                 </button>
               </div>
 
-              <button onClick={handleAddToCart} className="btn btn-primary" style={{ flexGrow: 1 }}>
+              <button onClick={handleAddToCart} className="btn btn-primary product-detail-cart-btn">
                 <ShoppingBag size={18} />
                 <span>Add to Cart (₹ {(product.price * quantity).toLocaleString('en-IN')})</span>
               </button>
             </div>
 
-            <button onClick={handleWhatsAppOrder} className="btn btn-whatsapp" style={{ width: '100%' }}>
+            <button onClick={handleWhatsAppOrder} className="btn btn-whatsapp product-detail-whatsapp-btn">
               <MessageCircle size={18} />
               <span>Instant Order via WhatsApp</span>
             </button>

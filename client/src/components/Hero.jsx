@@ -11,13 +11,13 @@ export default function Hero({ onExploreClick }) {
     <section className="hero-section">
       <div className="container hero-grid">
         {/* Left Column: Brand Story & CTAs */}
-        <div>
+        <div className="hero-content-col">
           <div className="hero-tagline-pill">
             <Leaf size={16} color="#15733E" />
-            <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#0A3E22' }}>
+            <span className="hero-tagline-text">
               LAMMA FARMER PRODUCER CO. LTD.
             </span>
-            <span className="badge badge-gold" style={{ marginLeft: '4px' }}>100% PURE</span>
+            <span className="badge badge-gold">100% PURE</span>
           </div>
 
           <h1 className="hero-h1">
@@ -36,34 +36,34 @@ export default function Hero({ onExploreClick }) {
           </p>
 
           <div className="hero-cta-group">
-            <button onClick={onExploreClick} className="btn btn-primary">
+            <button onClick={onExploreClick} className="btn btn-primary hero-btn">
               <span>Explore Products</span>
               <ArrowRight size={18} />
             </button>
 
-            <button onClick={openDirectWhatsApp} className="btn btn-whatsapp">
+            <button onClick={openDirectWhatsApp} className="btn btn-whatsapp hero-btn">
               <MessageCircle size={18} />
               <span>Order on WhatsApp</span>
             </button>
 
-            <a href="#story" className="btn btn-secondary">
+            <a href="#story" className="btn btn-secondary hero-btn">
               <span>LFPC Story</span>
             </a>
           </div>
 
           {/* Value Badges */}
-          <div style={{ display: 'flex', gap: '20px', marginTop: '36px', flexWrap: 'wrap' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <CheckCircle2 size={18} color="#15733E" />
-              <span style={{ fontSize: '0.9rem', fontWeight: 600, color: '#4A5B50' }}>Vedic Bilona Churned</span>
+          <div className="hero-badges-wrap">
+            <div className="hero-badge-item">
+              <CheckCircle2 size={17} color="#15733E" />
+              <span>Vedic Bilona Churned</span>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <CheckCircle2 size={18} color="#15733E" />
-              <span style={{ fontSize: '0.9rem', fontWeight: 600, color: '#4A5B50' }}>100% Chemical-Free</span>
+            <div className="hero-badge-item">
+              <CheckCircle2 size={17} color="#15733E" />
+              <span>100% Chemical-Free</span>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <CheckCircle2 size={18} color="#15733E" />
-              <span style={{ fontSize: '0.9rem', fontWeight: 600, color: '#4A5B50' }}>Fair Farmer Prosperity</span>
+            <div className="hero-badge-item">
+              <CheckCircle2 size={17} color="#15733E" />
+              <span>Fair Farmer Prosperity</span>
             </div>
           </div>
         </div>
@@ -75,6 +75,7 @@ export default function Hero({ onExploreClick }) {
               src="/assets/brand/sachi-kheti-logo-full.jpg"
               alt="Sachi Kheti Official Brand Logo"
               className="hero-logo-img"
+              loading="eager"
             />
           </div>
         </div>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, ShoppingBag, MessageCircle, Eye, Sparkles, Filter } from 'lucide-react';
+import { Search, ShoppingBag, MessageCircle, Sparkles } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 
 export default function ProductCatalog({ selectedCategory, onSelectCategory, onOpenProductDetail }) {
@@ -62,63 +62,73 @@ export default function ProductCatalog({ selectedCategory, onSelectCategory, onO
   };
 
   return (
-    <section id="catalog" style={{ padding: '80px 0', backgroundColor: 'var(--bg-cream)' }}>
+    <section id="catalog" className="catalog-section">
       <div className="container">
         {/* Title & Search Bar */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: '20px', marginBottom: '32px' }}>
-          <div>
-            <span className="badge badge-gold" style={{ marginBottom: '8px' }}>
+        <div className="catalog-header">
+          <div className="catalog-title-col">
+            <span className="badge badge-gold" style={{ marginBottom: '8px', display: 'inline-flex' }}>
               <Sparkles size={14} /> LFPC Certified Catalog
             </span>
-            <h2 style={{ fontSize: '2.4rem', fontWeight: 800 }}>
+            <h2 className="catalog-h2">
               Direct From Farm To Table
             </h2>
-            <p style={{ fontSize: '1rem', color: '#4A5B50' }}>
+            <p className="catalog-subtitle">
               Handcrafted pure dairy, farm-grade fertilizers, and reliable agricultural machinery.
             </p>
           </div>
 
           {/* Search Box */}
-          <div style={{ position: 'relative', width: '100%', maxWidth: '340px' }}>
+          <div className="catalog-search-wrapper">
             <Search
               size={18}
               color="#7A8B80"
-              style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)' }}
+              className="catalog-search-icon"
             />
             <input
               type="text"
               placeholder="Search products or Punjabi names..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="form-input"
-              style={{ paddingLeft: '42px', borderRadius: 'var(--radius-full)' }}
+              className="form-input catalog-search-input"
             />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="catalog-search-clear"
+                aria-label="Clear Search"
+              >
+                ×
+              </button>
+            )}
           </div>
         </div>
 
         {/* Category Filters */}
-        <div className="catalog-filters">
-          {categories.map((cat) => (
-            <button
-              key={cat.id}
-              onClick={() => onSelectCategory(cat.id)}
-              className={`filter-chip ${selectedCategory === cat.id ? 'active' : ''}`}
-            >
-              <span>{cat.label}</span>
-              <span style={{ fontSize: '0.8rem', opacity: 0.8 }} className="font-gurmukhi">
-                ({cat.punjabi})
-              </span>
-            </button>
-          ))}
+        <div className="catalog-filters-scroll">
+          <div className="catalog-filters">
+            {categories.map((cat) => (
+              <button
+                key={cat.id}
+                onClick={() => onSelectCategory(cat.id)}
+                className={`filter-chip ${selectedCategory === cat.id ? 'active' : ''}`}
+              >
+                <span>{cat.label}</span>
+                <span className="filter-chip-punjabi font-gurmukhi">
+                  ({cat.punjabi})
+                </span>
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Product Grid */}
         {loading ? (
-          <div style={{ textAlign: 'center', padding: '60px 0' }}>
-            <div style={{ fontSize: '1.2rem', color: '#15733E', fontWeight: 600 }}>Loading fresh farm produce...</div>
+          <div className="catalog-state-box">
+            <div className="catalog-loading-text">Loading fresh farm produce...</div>
           </div>
         ) : products.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '60px 0', background: '#FFFFFF', borderRadius: '16px', border: '1px dashed #C67C00' }}>
+          <div className="catalog-empty-box">
             <h3 style={{ fontSize: '1.3rem', color: '#0A3E22', marginBottom: '8px' }}>No products found</h3>
             <p style={{ color: '#7A8B80' }}>Try adjusting your search query or switching categories.</p>
           </div>
@@ -129,7 +139,6 @@ export default function ProductCatalog({ selectedCategory, onSelectCategory, onO
                 key={product.id}
                 className="product-card"
                 onClick={() => onOpenProductDetail(product)}
-                style={{ cursor: 'pointer' }}
               >
                 {/* Image */}
                 <div className="product-image-container">
@@ -166,18 +175,20 @@ export default function ProductCatalog({ selectedCategory, onSelectCategory, onO
                     <div className="product-actions">
                       <button
                         onClick={(e) => handleQuickWhatsApp(product, e)}
-                        className="btn btn-whatsapp btn-sm"
+                        className="btn btn-whatsapp btn-sm product-action-btn"
                         title="Instant Order on WhatsApp"
+                        aria-label="Order on WhatsApp"
                       >
-                        <MessageCircle size={15} />
+                        <MessageCircle size={16} />
                       </button>
 
                       <button
                         onClick={(e) => handleAddToCart(product, e)}
-                        className="btn btn-primary btn-sm"
+                        className="btn btn-primary btn-sm product-action-btn"
                         title="Add to Cart"
+                        aria-label="Add to Cart"
                       >
-                        <ShoppingBag size={15} />
+                        <ShoppingBag size={16} />
                         <span>Add</span>
                       </button>
                     </div>
