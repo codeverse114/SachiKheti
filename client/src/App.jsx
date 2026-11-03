@@ -9,7 +9,7 @@ import ProductDetailModal from './components/ProductDetailModal';
 import CartDrawer from './components/CartDrawer';
 import CheckoutModal from './components/CheckoutModal';
 import OrderTrackModal from './components/OrderTrackModal';
-import AdminDashboard from './components/AdminDashboard';
+import AdminPortalPage from './components/AdminPortalPage';
 import Footer from './components/Footer';
 
 function MainApp() {
@@ -28,20 +28,10 @@ function MainApp() {
   };
 
   const [currentPath, setCurrentPath] = useState(getInitialPath);
-  const [isAdminOpen, setIsAdminOpen] = useState(() => {
-    if (typeof window === 'undefined') return false;
-    return window.location.pathname.toLowerCase() === '/adminlog';
-  });
 
   useEffect(() => {
     const handlePopState = () => {
-      const path = getInitialPath();
-      setCurrentPath(path);
-      if (path === '/adminlog') {
-        setIsAdminOpen(true);
-      } else {
-        setIsAdminOpen(false);
-      }
+      setCurrentPath(getInitialPath());
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
@@ -52,17 +42,7 @@ function MainApp() {
       window.history.pushState(null, '', path);
     }
     setCurrentPath(path);
-    if (path === '/adminlog') {
-      setIsAdminOpen(true);
-    }
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  const handleCloseAdmin = () => {
-    setIsAdminOpen(false);
-    if (currentPath === '/adminlog') {
-      navigateTo('/');
-    }
   };
 
   const handleExploreClick = () => {
@@ -100,6 +80,16 @@ function MainApp() {
     }
   };
 
+  // If on /adminlog, render the dedicated Admin Portal App exclusively
+  if (currentPath === '/adminlog') {
+    return (
+      <AdminPortalPage
+        onNavigateHome={() => navigateTo('/')}
+      />
+    );
+  }
+
+  // Public E-Commerce Store
   return (
     <div className="app-root">
       {/* Top Promotional Announcement Ribbon */}
@@ -155,11 +145,6 @@ function MainApp() {
 
       {isTrackerOpen && (
         <OrderTrackModal onClose={() => setIsTrackerOpen(false)} />
-      )}
-
-      {/* Superadmin Portal - Hidden from public UI, accessible only via /adminlog */}
-      {isAdminOpen && (
-        <AdminDashboard onClose={handleCloseAdmin} />
       )}
     </div>
   );
