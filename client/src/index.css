@@ -2931,6 +2931,200 @@ a {
   }
 }
 
+/* ==================================================== */
+/* SUPERADMIN ANALYTICS (FUNNEL, BAR GRAPH, CHARTS)     */
+/* ==================================================== */
+.admin-funnel-card {
+  background: #FFFFFF;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-light);
+  padding: 24px;
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 24px;
+}
+
+.admin-funnel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.admin-funnel-steps-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 14px;
+  position: relative;
+}
+
+.admin-funnel-step-item {
+  background: #F8FAF8;
+  border: 1px solid #E8ECE9;
+  border-radius: 12px;
+  padding: 16px 14px;
+  position: relative;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.admin-funnel-step-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.admin-funnel-step-badge {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 10px;
+  margin-bottom: 8px;
+}
+
+.admin-funnel-step-count {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: #122117;
+  line-height: 1.1;
+  margin-bottom: 4px;
+}
+
+.admin-funnel-step-label {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #4A5B50;
+}
+
+.admin-funnel-step-pct {
+  font-size: 0.75rem;
+  color: #7A8B80;
+  margin-top: 6px;
+}
+
+.admin-funnel-progress-bar {
+  width: 100%;
+  height: 6px;
+  background: #E8ECE9;
+  border-radius: 4px;
+  margin-top: 10px;
+  overflow: hidden;
+}
+
+.admin-funnel-progress-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* 2-Column Analytics Layout */
+.admin-analytics-grid {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+@media (max-width: 992px) {
+  .admin-analytics-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Category Sales Bar Chart */
+.admin-bar-card {
+  background: #FFFFFF;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-light);
+  padding: 24px;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-bar-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.admin-bar-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.admin-bar-row-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.86rem;
+}
+
+.admin-bar-row-title {
+  font-weight: 700;
+  color: #122117;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.admin-bar-row-value {
+  font-weight: 800;
+  color: #15733E;
+}
+
+.admin-bar-track {
+  width: 100%;
+  height: 10px;
+  background: #F0F4F1;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.admin-bar-fill {
+  height: 100%;
+  border-radius: 6px;
+  background: linear-gradient(90deg, #15733E, #2ECC71);
+  transition: width 0.6s ease;
+}
+
+/* Donut & Dotted Graph Cards */
+.admin-donut-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  padding: 16px 0;
+  flex-wrap: wrap;
+}
+
+.admin-donut-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.admin-donut-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.85rem;
+}
+
+.admin-donut-legend-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.admin-dotted-chart-wrap {
+  width: 100%;
+  margin-top: 16px;
+}
+
 @media (max-width: 480px) {
   .admin-topbar {
     padding: 0 14px;
@@ -2941,5 +3135,6 @@ a {
     grid-template-columns: 1fr;
   }
 }
+
 
 

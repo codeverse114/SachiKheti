@@ -480,12 +480,118 @@ export default function AdminPortalPage({ onNavigateHome }) {
     return matchesSearch && matchesStatus;
   });
 
-  // KPI Metrics
+  // KPI Metrics & Analytics Calculations
   const totalRevenue = orders
     .filter(o => o.status !== 'CANCELLED')
     .reduce((sum, o) => sum + (o.totalAmount || 0), 0);
   const pendingOrdersCount = orders.filter(o => o.status === 'PENDING').length;
   const inStockProductsCount = products.filter(p => p.inStock).length;
+
+  // 1. Order Fulfillment Funnel Calculations
+  const totalOrdersCount = orders.length;
+  const confirmedCount = orders.filter(o => ['CONFIRMED', 'PROCESSING', 'SHIPPED', 'DELIVERED'].includes(o.status)).length;
+  const processingCount = orders.filter(o => ['PROCESSING', 'SHIPPED', 'DELIVERED'].includes(o.status)).length;
+  const shippedCount = orders.filter(o => ['SHIPPED', 'DELIVERED'].includes(o.status)).length;
+  const deliveredCount = orders.filter(o => o.status === 'DELIVERED').length;
+  const cancelledCount = orders.filter(o => o.status === 'CANCELLED').length;
+
+  const funnelSteps = [
+    {
+      stage: '1. Received',
+      count: totalOrdersCount,
+      color: '#3B82F6',
+      bg: '#EFF6FF',
+      pct: 100,
+      desc: 'All customer checkouts'
+    },
+    {
+      stage: '2. Confirmed',
+      count: confirmedCount,
+      color: '#059669',
+      bg: '#ECFDF5',
+      pct: totalOrdersCount > 0 ? Math.round((confirmedCount / totalOrdersCount) * 100) : 0,
+      desc: 'Approved & verified'
+    },
+    {
+      stage: '3. Processing',
+      count: processingCount,
+      color: '#D97706',
+      bg: '#FFFBEB',
+      pct: totalOrdersCount > 0 ? Math.round((processingCount / totalOrdersCount) * 100) : 0,
+      desc: 'Packaged at farm facility'
+    },
+    {
+      stage: '4. Shipped',
+      count: shippedCount,
+      color: '#7C3AED',
+      bg: '#F5F3FF',
+      pct: totalOrdersCount > 0 ? Math.round((shippedCount / totalOrdersCount) * 100) : 0,
+      desc: 'In transit to address'
+    },
+    {
+      stage: '5. Delivered',
+      count: deliveredCount,
+      color: '#15733E',
+      bg: '#EBF7EE',
+      pct: totalOrdersCount > 0 ? Math.round((deliveredCount / totalOrdersCount) * 100) : 0,
+      desc: 'Successfully completed'
+    },
+  ];
+
+  // 2. Sales by Category Bar Graph Calculations
+  const categorySalesMap = {};
+  categories.forEach(c => {
+    categorySalesMap[c.id] = {
+      id: c.id,
+      name: c.name,
+      sales: 0,
+      units: 0,
+      productCount: c._count?.products || 0,
+    };
+  });
+
+  orders.forEach(o => {
+    if (o.status === 'CANCELLED') return;
+    try {
+      const items = typeof o.items === 'string' ? JSON.parse(o.items) : o.items;
+      (items || []).forEach(item => {
+        const prod = products.find(p => p.id === item.productId || p.title === item.title);
+        const catId = prod?.categoryId || (categories.length > 0 ? categories[0].id : null);
+        if (catId && categorySalesMap[catId]) {
+          categorySalesMap[catId].sales += (item.price || 0) * (item.quantity || 1);
+          categorySalesMap[catId].units += (item.quantity || 1);
+        }
+      });
+    } catch (e) {}
+  });
+
+  const categorySalesList = Object.values(categorySalesMap);
+  const maxCategorySales = Math.max(...categorySalesList.map(c => c.sales), 1);
+
+  // 3. Revenue Breakdown by Payment Method
+  const whatsappRevenue = orders
+    .filter(o => o.paymentMethod === 'WHATSAPP' && o.status !== 'CANCELLED')
+    .reduce((sum, o) => sum + (o.totalAmount || 0), 0);
+  const onlineRevenue = orders
+    .filter(o => o.paymentMethod !== 'WHATSAPP' && o.status !== 'CANCELLED')
+    .reduce((sum, o) => sum + (o.totalAmount || 0), 0);
+  const totalValidRevenue = (whatsappRevenue + onlineRevenue) || 1;
+  const whatsappRatio = Math.round((whatsappRevenue / totalValidRevenue) * 100) || 50;
+  const onlineRatio = 100 - whatsappRatio;
+
+  // Circumference for SVG Donut (r=45 => 2 * PI * 45 ≈ 282.74)
+  const donutCircumference = 282.74;
+  const whatsappDash = (whatsappRatio / 100) * donutCircumference;
+  const onlineDash = donutCircumference - whatsappDash;
+
+  // Timeline points for Dotted Graph
+  const timelinePoints = orders.slice(0, 7).map((o, idx) => ({
+    label: new Date(o.createdAt).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' }),
+    amount: o.totalAmount || 0,
+    orderNumber: o.orderNumber,
+    status: o.status
+  })).reverse();
+
 
   // ==========================================
   // RENDER: LOGIN VIEW (IF NOT AUTHENTICATED)
@@ -790,68 +896,268 @@ export default function AdminPortalPage({ onNavigateHome }) {
                 </div>
               </div>
 
-              {/* Recent Orders Overview */}
-              <div className="admin-panel-card" style={{ marginTop: '28px' }}>
-                <div className="admin-panel-card-header">
+              {/* 1. ORDER FULFILLMENT FUNNEL */}
+              <div className="admin-funnel-card" style={{ marginTop: '28px' }}>
+                <div className="admin-funnel-header">
                   <div>
-                    <h3 className="admin-panel-title">Recent Customer Orders</h3>
-                    <p className="admin-panel-sub">Latest customer dispatches from SachiKheti store</p>
+                    <h3 className="admin-panel-title">Order Fulfillment Funnel</h3>
+                    <p className="admin-panel-sub">
+                      Stage-by-stage conversion from customer checkout to doorstep delivery
+                    </p>
                   </div>
-                  <button onClick={() => setActiveTab('orders')} className="btn btn-secondary btn-sm">
-                    <span>View All Orders</span>
-                    <ExternalLink size={14} />
-                  </button>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <span className="badge badge-green">
+                      Success Rate: {totalOrdersCount > 0 ? Math.round((deliveredCount / totalOrdersCount) * 100) : 0}%
+                    </span>
+                    {cancelledCount > 0 && (
+                      <span className="badge badge-gold">
+                        Cancelled: {cancelledCount}
+                      </span>
+                    )}
+                  </div>
                 </div>
 
-                <div className="admin-table-container">
-                  <table className="admin-table">
-                    <thead>
-                      <tr>
-                        <th>Order ID</th>
-                        <th>Customer</th>
-                        <th>Contact</th>
-                        <th>Total Amount</th>
-                        <th>Status</th>
-                        <th>Created</th>
-                        <th style={{ textAlign: 'right' }}>Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {orders.slice(0, 5).map(o => (
-                        <tr key={o.id}>
-                          <td><strong>{o.orderNumber}</strong></td>
-                          <td>{o.customerName}</td>
-                          <td>{o.customerPhone}</td>
-                          <td><strong>₹ {o.totalAmount.toLocaleString('en-IN')}</strong></td>
-                          <td>
-                            <span className={`badge ${
-                              o.status === 'DELIVERED' ? 'badge-green' :
-                              o.status === 'PENDING' ? 'badge-gold' :
-                              o.status === 'SHIPPED' ? 'badge-blue' : 'badge-gray'
-                            }`}>
-                              {o.status}
+                <div className="admin-funnel-steps-grid">
+                  {funnelSteps.map((step, idx) => (
+                    <div key={idx} className="admin-funnel-step-item">
+                      <span
+                        className="admin-funnel-step-badge"
+                        style={{ background: step.bg, color: step.color }}
+                      >
+                        {step.stage}
+                      </span>
+                      <div className="admin-funnel-step-count">{step.count}</div>
+                      <div className="admin-funnel-step-label">{step.desc}</div>
+                      <div className="admin-funnel-step-pct">
+                        {step.pct}% of total checkouts
+                      </div>
+                      <div className="admin-funnel-progress-bar">
+                        <div
+                          className="admin-funnel-progress-fill"
+                          style={{
+                            width: `${step.pct}%`,
+                            background: step.color
+                          }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* 2. ANALYTICS GRID: CATEGORY BAR GRAPH & REVENUE CHARTS */}
+              <div className="admin-analytics-grid">
+                {/* Left: Category Sales Bar Graph */}
+                <div className="admin-bar-card">
+                  <div className="admin-panel-card-header">
+                    <div>
+                      <h3 className="admin-panel-title">Sales by Category</h3>
+                      <p className="admin-panel-sub">Revenue and volume distribution across product categories</p>
+                    </div>
+                    <button onClick={() => setActiveTab('categories')} className="btn btn-secondary btn-sm">
+                      <span>View Categories</span>
+                      <ExternalLink size={14} />
+                    </button>
+                  </div>
+
+                  <div className="admin-bar-list">
+                    {categorySalesList.map((cat) => {
+                      const pct = Math.round((cat.sales / maxCategorySales) * 100) || (cat.productCount > 0 ? 15 : 5);
+                      return (
+                        <div key={cat.id} className="admin-bar-row">
+                          <div className="admin-bar-row-header">
+                            <span className="admin-bar-row-title">
+                              <span>{cat.name}</span>
+                              <span className="badge" style={{ fontSize: '0.7rem', padding: '1px 6px', background: '#F0F4F1' }}>
+                                {cat.productCount} items
+                              </span>
                             </span>
-                          </td>
-                          <td>{new Date(o.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</td>
-                          <td style={{ textAlign: 'right' }}>
-                            <button
-                              onClick={() => { setActiveTab('orders'); setOrderSearch(o.orderNumber); }}
-                              className="btn btn-secondary btn-sm"
-                            >
-                              Manage
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                      {orders.length === 0 && (
-                        <tr>
-                          <td colSpan={7} style={{ textAlign: 'center', padding: '32px', color: '#7A8B80' }}>
-                            No orders placed yet.
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
+                            <span className="admin-bar-row-value">
+                              ₹ {cat.sales.toLocaleString('en-IN')}{' '}
+                              <span style={{ fontSize: '0.74rem', color: '#7A8B80', fontWeight: 500 }}>
+                                ({cat.units} sold)
+                              </span>
+                            </span>
+                          </div>
+                          <div className="admin-bar-track">
+                            <div
+                              className="admin-bar-fill"
+                              style={{ width: `${pct}%` }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                    {categorySalesList.length === 0 && (
+                      <div style={{ textAlign: 'center', padding: '24px', color: '#7A8B80' }}>
+                        No categories found.
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Right: Revenue Channel Donut & Activity Dotted Graph */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                  {/* Donut Chart: Revenue Breakdown */}
+                  <div className="admin-panel-card">
+                    <div className="admin-panel-card-header">
+                      <div>
+                        <h3 className="admin-panel-title">Revenue Channels</h3>
+                        <p className="admin-panel-sub">WhatsApp Direct Orders vs. Online / UPI</p>
+                      </div>
+                    </div>
+
+                    <div className="admin-donut-box">
+                      <div style={{ position: 'relative', width: '130px', height: '130px', flexShrink: 0 }}>
+                        <svg width="130" height="130" viewBox="0 0 130 130">
+                          {/* Background Ring */}
+                          <circle
+                            cx="65"
+                            cy="65"
+                            r="45"
+                            fill="transparent"
+                            stroke="#F0F4F1"
+                            strokeWidth="16"
+                          />
+                          {/* Online Slice */}
+                          <circle
+                            cx="65"
+                            cy="65"
+                            r="45"
+                            fill="transparent"
+                            stroke="#D97706"
+                            strokeWidth="16"
+                            strokeDasharray={donutCircumference}
+                            strokeDashoffset="0"
+                            transform="rotate(-90 65 65)"
+                          />
+                          {/* WhatsApp Direct Slice */}
+                          <circle
+                            cx="65"
+                            cy="65"
+                            r="45"
+                            fill="transparent"
+                            stroke="#15733E"
+                            strokeWidth="16"
+                            strokeDasharray={`${whatsappDash} ${onlineDash}`}
+                            strokeDashoffset="0"
+                            transform="rotate(-90 65 65)"
+                            strokeLinecap="round"
+                          />
+                        </svg>
+                        <div style={{
+                          position: 'absolute',
+                          top: 0,
+                          left: 0,
+                          right: 0,
+                          bottom: 0,
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          pointerEvents: 'none'
+                        }}>
+                          <div style={{ fontSize: '0.68rem', color: '#7A8B80', textTransform: 'uppercase', fontWeight: 700 }}>Total</div>
+                          <div style={{ fontSize: '0.86rem', fontWeight: 800, color: '#122117' }}>₹{totalRevenue.toLocaleString('en-IN')}</div>
+                        </div>
+                      </div>
+
+                      <div className="admin-donut-legend">
+                        <div className="admin-donut-legend-item">
+                          <span className="admin-donut-legend-dot" style={{ background: '#15733E' }} />
+                          <div>
+                            <div style={{ fontWeight: 700, color: '#122117' }}>
+                              WhatsApp Orders ({whatsappRatio}%)
+                            </div>
+                            <div style={{ fontSize: '0.78rem', color: '#7A8B80' }}>
+                              ₹ {whatsappRevenue.toLocaleString('en-IN')}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="admin-donut-legend-item">
+                          <span className="admin-donut-legend-dot" style={{ background: '#D97706' }} />
+                          <div>
+                            <div style={{ fontWeight: 700, color: '#122117' }}>
+                              Online / UPI ({onlineRatio}%)
+                            </div>
+                            <div style={{ fontSize: '0.78rem', color: '#7A8B80' }}>
+                              ₹ {onlineRevenue.toLocaleString('en-IN')}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Dotted Trend Graph */}
+                  <div className="admin-panel-card">
+                    <div className="admin-panel-card-header">
+                      <div>
+                        <h3 className="admin-panel-title">Order Activity Timeline</h3>
+                        <p className="admin-panel-sub">Volume & dispatch value per transaction</p>
+                      </div>
+                      <button onClick={() => setActiveTab('orders')} className="btn btn-secondary btn-sm">
+                        <span>Fulfillment</span>
+                      </button>
+                    </div>
+
+                    <div className="admin-dotted-chart-wrap">
+                      <svg width="100%" height="110" viewBox="0 0 340 110" preserveAspectRatio="none">
+                        <defs>
+                          <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#15733E" stopOpacity="0.25" />
+                            <stop offset="100%" stopColor="#15733E" stopOpacity="0.0" />
+                          </linearGradient>
+                        </defs>
+
+                        {/* Baseline Grid */}
+                        <line x1="10" y1="90" x2="330" y2="90" stroke="#E8ECE9" strokeWidth="1" strokeDasharray="3 3" />
+                        <line x1="10" y1="50" x2="330" y2="50" stroke="#E8ECE9" strokeWidth="1" strokeDasharray="3 3" />
+                        <line x1="10" y1="15" x2="330" y2="15" stroke="#E8ECE9" strokeWidth="1" strokeDasharray="3 3" />
+
+                        {(() => {
+                          const pts = timelinePoints.length > 0 ? timelinePoints : [
+                            { label: 'Start', amount: 490 },
+                            { label: 'Mid', amount: 1450 },
+                            { label: 'Latest', amount: 980 }
+                          ];
+                          const maxAmt = Math.max(...pts.map(p => p.amount), 500);
+                          const stepX = pts.length > 1 ? 300 / (pts.length - 1) : 150;
+
+                          const coords = pts.map((p, i) => {
+                            const x = 20 + i * stepX;
+                            const y = 85 - (p.amount / maxAmt) * 65;
+                            return { ...p, x, y };
+                          });
+
+                          const pathData = coords.reduce((acc, c, i) => {
+                            return i === 0 ? `M ${c.x} ${c.y}` : `${acc} L ${c.x} ${c.y}`;
+                          }, '');
+
+                          const areaData = coords.length > 0
+                            ? `${pathData} L ${coords[coords.length - 1].x} 90 L ${coords[0].x} 90 Z`
+                            : '';
+
+                          return (
+                            <>
+                              {areaData && <path d={areaData} fill="url(#chartGradient)" />}
+                              {pathData && <path d={pathData} fill="none" stroke="#15733E" strokeWidth="2.5" strokeLinecap="round" />}
+                              {coords.map((c, i) => (
+                                <g key={i}>
+                                  <circle cx={c.x} cy={c.y} r="5" fill="#FFFFFF" stroke="#15733E" strokeWidth="2.5" />
+                                  <circle cx={c.x} cy={c.y} r="2.5" fill="#15733E" />
+                                  <text x={c.x} y="104" textAnchor="middle" fontSize="9" fill="#7A8B80" fontWeight="600">
+                                    {c.label}
+                                  </text>
+                                </g>
+                              ))}
+                            </>
+                          );
+                        })()}
+                      </svg>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
