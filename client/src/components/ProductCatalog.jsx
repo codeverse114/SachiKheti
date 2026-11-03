@@ -8,14 +8,29 @@ export default function ProductCatalog({ selectedCategory, onSelectCategory, onO
   const [searchQuery, setSearchQuery] = useState('');
   const { addToCart } = useCart();
 
-  const categories = [
+  const [categories, setCategories] = useState([
     { id: 'all', label: 'All Products', punjabi: 'ਸਾਰੇ ਉਤਪਾਦ' },
-    { id: 'dairy', label: 'Fresh Dairy', punjabi: 'ਤਾਜ਼ਾ ਡੇਅਰੀ' },
-    { id: 'sweets', label: 'Traditional Sweets', punjabi: 'ਦੇਸੀ ਮਿਠਾਈਆਂ' },
-    { id: 'manure', label: 'Organic Manure', punjabi: 'ਜੈਵਿਕ ਖਾਦ' },
-    { id: 'machinery', label: 'Farming Machinery', punjabi: 'ਖੇਤੀ ਸੰਦ' },
-    { id: 'produce', label: 'Oils & Honey', punjabi: 'ਸ਼ੁੱਧ ਤੇਲ ਤੇ ਸ਼ਹਿਦ' },
-  ];
+  ]);
+
+  // Dynamically load categories from live database
+  useEffect(() => {
+    fetch('/api/categories')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && Array.isArray(data.data) && data.data.length > 0) {
+          const apiCats = data.data.map(c => ({
+            id: c.slug,
+            label: c.name,
+            punjabi: c.namePunjabi && c.namePunjabi !== c.name ? c.namePunjabi : '',
+          }));
+          setCategories([
+            { id: 'all', label: 'All Products', punjabi: 'ਸਾਰੇ ਉਤਪਾਦ' },
+            ...apiCats
+          ]);
+        }
+      })
+      .catch(err => console.error('Error fetching categories in catalog:', err));
+  }, []);
 
   const fetchProducts = async () => {
     try {
@@ -51,7 +66,7 @@ export default function ProductCatalog({ selectedCategory, onSelectCategory, onO
   const handleQuickWhatsApp = (product, e) => {
     e.stopPropagation();
     const msg = encodeURIComponent(
-      `Hello SachiKheti! I want to order:\n- *${product.title}* (${product.titlePunjabi})\n- Price: ₹${product.price.toLocaleString('en-IN')} / ${product.unit}\n\nPlease confirm availability and delivery to my address.`
+      `Hello SachiKheti! I want to order:\n- *${product.title}*\n- Price: ₹${product.price.toLocaleString('en-IN')} / ${product.unit}\n\nPlease confirm availability and delivery to my address.`
     );
     window.open(`https://wa.me/918295886832?text=${msg}`, '_blank');
   };
@@ -87,7 +102,7 @@ export default function ProductCatalog({ selectedCategory, onSelectCategory, onO
             />
             <input
               type="text"
-              placeholder="Search products or Punjabi names..."
+              placeholder="Search products or descriptions..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="form-input catalog-search-input"
@@ -114,9 +129,11 @@ export default function ProductCatalog({ selectedCategory, onSelectCategory, onO
                 className={`filter-chip ${selectedCategory === cat.id ? 'active' : ''}`}
               >
                 <span>{cat.label}</span>
-                <span className="filter-chip-punjabi font-gurmukhi">
-                  ({cat.punjabi})
-                </span>
+                {cat.punjabi && (
+                  <span className="filter-chip-punjabi font-gurmukhi">
+                    ({cat.punjabi})
+                  </span>
+                )}
               </button>
             ))}
           </div>
@@ -140,55 +157,66 @@ export default function ProductCatalog({ selectedCategory, onSelectCategory, onO
                 className="product-card"
                 onClick={() => onOpenProductDetail(product)}
               >
-                {/* Image */}
-                <div className="product-image-container">
+                {/* Product Image Wrap */}
+                <div className="product-card-media">
                   <img
                     src={product.imageUrl}
                     alt={product.title}
-                    className="product-image"
+                    className="product-card-img"
                     loading="lazy"
                   />
-                  <div className="product-category-tag">
-                    {product.category?.name || 'Produce'}
-                  </div>
                   {product.featured && (
-                    <div className="product-featured-tag">
-                      ★ LFPC Choice
-                    </div>
+                    <span className="product-card-tag badge-gold">
+                      ★ Featured
+                    </span>
+                  )}
+                  {!product.inStock && (
+                    <span className="product-card-tag badge-out-of-stock">
+                      Sold Out
+                    </span>
                   )}
                 </div>
 
-                {/* Content */}
-                <div className="product-content">
-                  <div className="product-title-punjabi font-gurmukhi">
-                    {product.titlePunjabi}
+                {/* Product Content */}
+                <div className="product-card-body">
+                  <div className="product-card-cat">
+                    {product.category?.name || 'Produce'}
                   </div>
-                  <h3 className="product-title">{product.title}</h3>
-                  <p className="product-desc">{product.description}</p>
 
-                  <div className="product-footer">
+                  <h3 className="product-card-title">
+                    {product.title}
+                  </h3>
+
+                  <p className="product-card-desc">
+                    {product.description}
+                  </p>
+
+                  <div className="product-card-footer">
                     <div className="product-price-box">
-                      <span className="product-unit">{product.unit}</span>
-                      <span className="product-price">₹ {product.price.toLocaleString('en-IN')}</span>
+                      <span className="product-currency">₹</span>
+                      <span className="product-price">
+                        {product.price.toLocaleString('en-IN')}
+                      </span>
+                      <span className="product-unit">/{product.unit}</span>
                     </div>
 
-                    <div className="product-actions">
+                    <div className="product-card-actions">
                       <button
                         onClick={(e) => handleQuickWhatsApp(product, e)}
-                        className="btn btn-whatsapp btn-sm product-action-btn"
-                        title="Instant Order on WhatsApp"
+                        className="btn-icon-whatsapp"
+                        title="Inquire or Order via WhatsApp"
                         aria-label="Order on WhatsApp"
                       >
-                        <MessageCircle size={16} />
+                        <MessageCircle size={18} />
                       </button>
 
                       <button
                         onClick={(e) => handleAddToCart(product, e)}
-                        className="btn btn-primary btn-sm product-action-btn"
-                        title="Add to Cart"
-                        aria-label="Add to Cart"
+                        disabled={!product.inStock}
+                        className="btn btn-primary btn-sm product-add-btn"
+                        aria-label="Add to cart"
                       >
-                        <ShoppingBag size={16} />
+                        <ShoppingBag size={15} />
                         <span>Add</span>
                       </button>
                     </div>

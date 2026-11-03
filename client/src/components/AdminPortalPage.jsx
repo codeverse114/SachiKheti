@@ -26,7 +26,8 @@ import {
   Phone,
   Truck,
   MapPin,
-  Calendar
+  Calendar,
+  FolderPlus
 } from 'lucide-react';
 
 export default function AdminPortalPage({ onNavigateHome }) {
@@ -39,7 +40,7 @@ export default function AdminPortalPage({ onNavigateHome }) {
   const [loginError, setLoginError] = useState('');
   const [loggingIn, setLoggingIn] = useState(false);
 
-  // Navigation tab state: 'overview' | 'products' | 'orders' | 'categories' | 'banner'
+  // Navigation tab state: 'overview' | 'products' | 'categories' | 'orders' | 'banner'
   const [activeTab, setActiveTab] = useState('overview');
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -63,7 +64,6 @@ export default function AdminPortalPage({ onNavigateHome }) {
   const [savingProduct, setSavingProduct] = useState(false);
   const [productForm, setProductForm] = useState({
     title: '',
-    titlePunjabi: '',
     categoryId: '',
     price: '',
     unit: '1 Litre',
@@ -74,6 +74,27 @@ export default function AdminPortalPage({ onNavigateHome }) {
     featured: false,
     specs: '',
   });
+
+  // Category Add / Edit Modal state
+  const [showCategoryModal, setShowCategoryModal] = useState(false);
+  const [editingCategory, setEditingCategory] = useState(null);
+  const [savingCategory, setSavingCategory] = useState(false);
+  const [categoryForm, setCategoryForm] = useState({
+    name: '',
+    slug: '',
+    description: '',
+    icon: 'package',
+  });
+
+  // Helper to auto-generate slug from name
+  const slugify = (text) => {
+    return text
+      .toLowerCase()
+      .trim()
+      .replace(/[^\w\s-]/g, '')
+      .replace(/[\s_-]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+  };
 
   // Verify token on mount
   useEffect(() => {
@@ -99,21 +120,21 @@ export default function AdminPortalPage({ onNavigateHome }) {
       setLoadingData(true);
       const headers = { Authorization: `Bearer ${token}` };
 
-      const [ordersRes, productsRes, categoriesRes, bannerRes] = await Promise.all([
-        fetch('/api/orders', { headers }).then(r => r.json()),
-        fetch('/api/products').then(r => r.json()),
-        fetch('/api/categories').then(r => r.json()),
-        fetch('/api/banners').then(r => r.json()),
+      const [ordersRes, productsRes, categoriesRes, bannersRes] = await Promise.all([
+        fetch('/api/orders', { headers }).then(r => r.json()).catch(() => ({ data: [] })),
+        fetch('/api/products').then(r => r.json()).catch(() => ({ data: [] })),
+        fetch('/api/categories').then(r => r.json()).catch(() => ({ data: [] })),
+        fetch('/api/banners').then(r => r.json()).catch(() => ({ data: [] })),
       ]);
 
-      if (ordersRes.success) setOrders(ordersRes.data);
-      if (productsRes.success) setProducts(productsRes.data);
-      if (categoriesRes.success) setCategories(categoriesRes.data);
-      if (bannerRes.success && bannerRes.data.length > 0) {
-        setBanner(bannerRes.data[0]);
+      if (ordersRes.success) setOrders(ordersRes.data || []);
+      if (productsRes.success) setProducts(productsRes.data || []);
+      if (categoriesRes.success) setCategories(categoriesRes.data || []);
+      if (bannersRes.success && bannersRes.data && bannersRes.data.length > 0) {
+        setBanner(bannersRes.data[0]);
       }
     } catch (err) {
-      console.error('Failed to load admin data:', err);
+      console.error('Error refreshing admin data:', err);
     } finally {
       setLoadingData(false);
     }
@@ -121,26 +142,26 @@ export default function AdminPortalPage({ onNavigateHome }) {
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    setLoginError('');
+    setLoggingIn(true);
     try {
-      setLoggingIn(true);
-      setLoginError('');
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password }),
       });
       const data = await res.json();
-
       if (data.success) {
         localStorage.setItem('sachikheti_admin_token', data.token);
         setToken(data.token);
         setAdminUser(data.admin);
-        loadAllData();
+        setActionSuccess('Welcome back, Superadmin! Live database connected.');
+        setTimeout(() => setActionSuccess(''), 4000);
       } else {
-        setLoginError(data.message || 'Invalid administrator credentials');
+        setLoginError(data.message || 'Invalid username or password.');
       }
     } catch (err) {
-      setLoginError('Server connection failed. Please ensure backend is running.');
+      setLoginError('Cannot connect to authentication service.');
     } finally {
       setLoggingIn(false);
     }
@@ -152,111 +173,14 @@ export default function AdminPortalPage({ onNavigateHome }) {
     setAdminUser(null);
   };
 
-  const triggerSuccess = (msg) => {
-    setActionSuccess(msg);
-    setTimeout(() => setActionSuccess(''), 4000);
-  };
-
-  // Order status update
-  const handleOrderStatusChange = async (orderId, newStatus) => {
-    try {
-      const res = await fetch(`/api/orders/${orderId}/status`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ orderStatus: newStatus }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setOrders(prev => prev.map(o => o.id === orderId ? { ...o, orderStatus: newStatus } : o));
-        triggerSuccess(`Order status updated to ${newStatus}`);
-      }
-    } catch (err) {
-      alert('Failed to update order status');
-    }
-  };
-
-  // Save product (Create or Edit)
-  const handleSaveProduct = async (e) => {
-    e.preventDefault();
-    try {
-      setSavingProduct(true);
-      const method = editingProduct ? 'PUT' : 'POST';
-      const endpoint = editingProduct ? `/api/products/${editingProduct.id}` : '/api/products';
-
-      const res = await fetch(endpoint, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(productForm),
-      });
-      const data = await res.json();
-
-      if (data.success) {
-        setShowProductModal(false);
-        setEditingProduct(null);
-        loadAllData();
-        triggerSuccess(editingProduct ? 'Product updated successfully!' : 'New product published to catalog!');
-      } else {
-        alert(data.message || 'Failed to save product');
-      }
-    } catch (err) {
-      alert('Error communicating with database');
-    } finally {
-      setSavingProduct(false);
-    }
-  };
-
-  // Delete product
-  const handleDeleteProduct = async (productId, title) => {
-    if (!window.confirm(`Are you sure you want to delete "${title}" from the store catalog?`)) return;
-    try {
-      const res = await fetch(`/api/products/${productId}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
-      if (data.success) {
-        setProducts(prev => prev.filter(p => p.id !== productId));
-        triggerSuccess(`Product "${title}" removed.`);
-      }
-    } catch (err) {
-      alert('Failed to delete product');
-    }
-  };
-
-  // Quick toggle product stock
-  const handleToggleStock = async (product) => {
-    try {
-      const updatedStock = !product.inStock;
-      const res = await fetch(`/api/products/${product.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ inStock: updatedStock }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setProducts(prev => prev.map(p => p.id === product.id ? { ...p, inStock: updatedStock } : p));
-        triggerSuccess(`Stock availability updated for "${product.title}"`);
-      }
-    } catch (err) {
-      alert('Failed to toggle stock status');
-    }
-  };
-
-  const openNewProductModal = () => {
+  // ==========================================
+  // PRODUCT MANAGEMENT HANDLERS
+  // ==========================================
+  const openAddProductModal = () => {
     setEditingProduct(null);
     setProductForm({
       title: '',
-      titlePunjabi: '',
-      categoryId: categories.length > 0 ? categories[0].id : '',
+      categoryId: categories[0]?.id || '',
       price: '',
       unit: '1 Litre',
       imageUrl: 'https://images.unsplash.com/photo-1627483262268-9c2b5b2834b5?auto=format&fit=crop&w=800&q=80',
@@ -273,70 +197,298 @@ export default function AdminPortalPage({ onNavigateHome }) {
     setEditingProduct(product);
     setProductForm({
       title: product.title,
-      titlePunjabi: product.titlePunjabi || '',
       categoryId: product.categoryId,
-      price: product.price,
+      price: product.price.toString(),
       unit: product.unit,
       imageUrl: product.imageUrl,
-      description: product.description || '',
+      description: product.description,
       inStock: product.inStock,
       stockCount: product.stockCount,
       featured: product.featured,
-      specs: typeof product.specs === 'string' ? product.specs : JSON.stringify(product.specs || {}),
+      specs: product.specs || '',
     });
     setShowProductModal(true);
   };
 
-  // Update festive banner
-  const handleSaveBanner = async (e) => {
+  const handleSaveProduct = async (e) => {
     e.preventDefault();
+    setSavingProduct(true);
     try {
-      const res = await fetch(`/api/banners/${banner.id || 'welcome-banner-1'}`, {
-        method: 'PUT',
+      const url = editingProduct ? `/api/products/${editingProduct.id}` : '/api/products';
+      const method = editingProduct ? 'PUT' : 'POST';
+
+      const payload = {
+        title: productForm.title,
+        titlePunjabi: productForm.title, // Graceful fallback for backend schema
+        categoryId: productForm.categoryId,
+        price: parseFloat(productForm.price),
+        unit: productForm.unit,
+        imageUrl: productForm.imageUrl,
+        description: productForm.description,
+        inStock: Boolean(productForm.inStock),
+        stockCount: parseInt(productForm.stockCount, 10) || 0,
+        featured: Boolean(productForm.featured),
+        specs: productForm.specs,
+      };
+
+      const res = await fetch(url, {
+        method,
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify(banner),
+        body: JSON.stringify(payload)
       });
       const data = await res.json();
       if (data.success) {
-        triggerSuccess('Announcement banner saved live!');
+        setShowProductModal(false);
+        setActionSuccess(editingProduct ? 'Product updated successfully!' : 'New product created and live in catalog!');
+        setTimeout(() => setActionSuccess(''), 4000);
+        loadAllData();
       } else {
-        alert('Failed to update banner');
+        alert(data.message || 'Error saving product');
+      }
+    } catch (err) {
+      alert('Network error while saving product');
+    } finally {
+      setSavingProduct(false);
+    }
+  };
+
+  const handleDeleteProduct = async (id, title) => {
+    if (!window.confirm(`Are you sure you want to permanently delete "${title}"?`)) return;
+    try {
+      const res = await fetch(`/api/products/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.success) {
+        setActionSuccess(`"${title}" deleted from catalog.`);
+        setTimeout(() => setActionSuccess(''), 4000);
+        loadAllData();
+      } else {
+        alert(data.message || 'Failed to delete product');
+      }
+    } catch (err) {
+      alert('Error deleting product');
+    }
+  };
+
+  const handleToggleStock = async (product) => {
+    try {
+      const res = await fetch(`/api/products/${product.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ inStock: !product.inStock })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setActionSuccess(`Stock status for "${product.title}" updated.`);
+        setTimeout(() => setActionSuccess(''), 3000);
+        loadAllData();
+      }
+    } catch (err) {
+      alert('Error updating stock status');
+    }
+  };
+
+  // ==========================================
+  // CATEGORY MANAGEMENT HANDLERS
+  // ==========================================
+  const openAddCategoryModal = () => {
+    setEditingCategory(null);
+    setCategoryForm({
+      name: '',
+      slug: '',
+      description: '',
+      icon: 'package',
+    });
+    setShowCategoryModal(true);
+  };
+
+  const openEditCategoryModal = (category) => {
+    setEditingCategory(category);
+    setCategoryForm({
+      name: category.name,
+      slug: category.slug,
+      description: category.description || '',
+      icon: category.icon || 'package',
+    });
+    setShowCategoryModal(true);
+  };
+
+  const handleCategoryNameChange = (e) => {
+    const name = e.target.value;
+    if (!editingCategory) {
+      // Auto-generate slug when creating new
+      setCategoryForm({
+        ...categoryForm,
+        name,
+        slug: slugify(name),
+      });
+    } else {
+      setCategoryForm({
+        ...categoryForm,
+        name,
+      });
+    }
+  };
+
+  const handleSaveCategory = async (e) => {
+    e.preventDefault();
+    if (!categoryForm.name.trim()) {
+      alert('Please enter a category name');
+      return;
+    }
+    setSavingCategory(true);
+    try {
+      const url = editingCategory ? `/api/categories/${editingCategory.id}` : '/api/categories';
+      const method = editingCategory ? 'PUT' : 'POST';
+
+      const payload = {
+        name: categoryForm.name.trim(),
+        namePunjabi: categoryForm.name.trim(), // Keep DB consistent in simple English
+        slug: categoryForm.slug.trim() || slugify(categoryForm.name),
+        description: categoryForm.description.trim(),
+        icon: categoryForm.icon,
+      };
+
+      const res = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (data.success) {
+        setShowCategoryModal(false);
+        setActionSuccess(editingCategory ? 'Category updated successfully!' : 'New category created! Visible across the entire store.');
+        setTimeout(() => setActionSuccess(''), 4000);
+        loadAllData();
+      } else {
+        alert(data.message || 'Error saving category');
+      }
+    } catch (err) {
+      alert('Network error while saving category');
+    } finally {
+      setSavingCategory(false);
+    }
+  };
+
+  const handleDeleteCategory = async (id, name, productCount) => {
+    if (productCount > 0) {
+      if (!window.confirm(`Warning: Category "${name}" contains ${productCount} active products. Deleting it may impact these products. Proceed anyway?`)) {
+        return;
+      }
+    } else {
+      if (!window.confirm(`Are you sure you want to delete category "${name}"?`)) return;
+    }
+
+    try {
+      const res = await fetch(`/api/categories/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.success) {
+        setActionSuccess(`Category "${name}" deleted.`);
+        setTimeout(() => setActionSuccess(''), 4000);
+        loadAllData();
+      } else {
+        alert(data.message || 'Failed to delete category');
+      }
+    } catch (err) {
+      alert('Error deleting category');
+    }
+  };
+
+  // ==========================================
+  // ORDER STATUS UPDATE HANDLER
+  // ==========================================
+  const handleUpdateOrderStatus = async (orderId, newStatus) => {
+    try {
+      const res = await fetch(`/api/orders/${orderId}/status`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ status: newStatus })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setActionSuccess(`Order status updated to "${newStatus}"`);
+        setTimeout(() => setActionSuccess(''), 3000);
+        loadAllData();
+      } else {
+        alert(data.message || 'Failed to update order status');
+      }
+    } catch (err) {
+      alert('Error updating order');
+    }
+  };
+
+  // ==========================================
+  // BANNER UPDATE HANDLER
+  // ==========================================
+  const handleSaveBanner = async (e) => {
+    e.preventDefault();
+    try {
+      const res = await fetch(`/api/banners/${banner.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          title: banner.title,
+          message: banner.message,
+          isActive: banner.isActive,
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setActionSuccess('Announcement ribbon updated live!');
+        setTimeout(() => setActionSuccess(''), 3000);
       }
     } catch (err) {
       alert('Error updating banner');
     }
   };
 
-  // Metrics calculations
-  const totalRevenue = orders.reduce((acc, o) => acc + (o.paymentStatus === 'COMPLETED' ? o.totalAmount : 0), 0);
-  const totalOrdersCount = orders.length;
-  const pendingOrdersCount = orders.filter(o => o.orderStatus === 'PENDING').length;
-  const deliveredOrdersCount = orders.filter(o => o.orderStatus === 'DELIVERED').length;
-  const inStockProductsCount = products.filter(p => p.inStock).length;
-
-  // Filtered lists
+  // Filter calculations
   const filteredProducts = products.filter(p => {
-    const matchesCategory = selectedProductCategory === 'all' || p.category?.slug === selectedProductCategory;
-    const matchesSearch = !productSearch.trim() ||
+    const matchesSearch = !productSearch ||
       p.title.toLowerCase().includes(productSearch.toLowerCase()) ||
-      (p.titlePunjabi && p.titlePunjabi.includes(productSearch));
-    return matchesCategory && matchesSearch;
+      (p.description && p.description.toLowerCase().includes(productSearch.toLowerCase()));
+    const matchesCat = selectedProductCategory === 'all' || p.categoryId === selectedProductCategory;
+    return matchesSearch && matchesCat;
   });
 
   const filteredOrders = orders.filter(o => {
-    const matchesStatus = orderStatusFilter === 'all' || o.orderStatus === orderStatusFilter;
-    const matchesSearch = !orderSearch.trim() ||
+    const matchesSearch = !orderSearch ||
       o.orderNumber.toLowerCase().includes(orderSearch.toLowerCase()) ||
       o.customerName.toLowerCase().includes(orderSearch.toLowerCase()) ||
       o.customerPhone.includes(orderSearch);
-    return matchesStatus && matchesSearch;
+    const matchesStatus = orderStatusFilter === 'all' || o.status === orderStatusFilter;
+    return matchesSearch && matchesStatus;
   });
 
+  // KPI Metrics
+  const totalRevenue = orders
+    .filter(o => o.status !== 'CANCELLED')
+    .reduce((sum, o) => sum + (o.totalAmount || 0), 0);
+  const pendingOrdersCount = orders.filter(o => o.status === 'PENDING').length;
+  const inStockProductsCount = products.filter(p => p.inStock).length;
+
   // ==========================================
-  // 1. UNAUTHENTICATED: Full-page Login Portal
+  // RENDER: LOGIN VIEW (IF NOT AUTHENTICATED)
   // ==========================================
   if (!token || !adminUser) {
     return (
@@ -349,14 +501,14 @@ export default function AdminPortalPage({ onNavigateHome }) {
               className="admin-login-logo"
             />
             <div>
-              <div className="font-gurmukhi admin-login-title-punjabi">ਸੱਚੀ ਖੇਤੀ</div>
-              <div className="admin-login-title">Control Portal</div>
+              <div className="admin-login-title">SachiKheti Superadmin</div>
+              <div style={{ fontSize: '0.82rem', color: '#7A8B80' }}>Platform Administration Portal</div>
             </div>
           </div>
 
           <div className="admin-login-badge">
             <ShieldCheck size={16} color="#15733E" />
-            <span>Authorized LFPC Superadmin Access</span>
+            <span>Authorized LFPC Management Access</span>
           </div>
 
           {loginError && (
@@ -394,34 +546,31 @@ export default function AdminPortalPage({ onNavigateHome }) {
             <button
               type="submit"
               disabled={loggingIn}
-              className="btn btn-primary admin-login-btn"
+              className="btn btn-primary"
+              style={{ width: '100%', justifyContent: 'center', marginTop: '10px' }}
             >
               {loggingIn ? (
-                <span>Authenticating...</span>
+                <>
+                  <RefreshCw size={17} className="spin" />
+                  <span>Verifying Credentials...</span>
+                </>
               ) : (
                 <>
                   <ShieldCheck size={18} />
-                  <span>Secure Login</span>
+                  <span>Sign In to Superadmin</span>
                 </>
               )}
             </button>
           </form>
 
-          <div className="admin-login-credentials-box">
-            <div style={{ fontWeight: 700, color: '#0A3E22', marginBottom: '4px' }}>
-              Default Superadmin Credentials:
-            </div>
-            <div>Username: <code>SachiKhetiAdmin</code></div>
-            <div>Password: <code>Sachi@Kheti123</code></div>
-          </div>
-
-          <div style={{ textAlign: 'center', marginTop: '20px' }}>
+          <div style={{ marginTop: '24px', textAlign: 'center' }}>
             <button
               onClick={onNavigateHome}
-              className="admin-back-link"
+              className="btn btn-secondary btn-sm"
+              style={{ width: '100%', justifyContent: 'center' }}
             >
-              <ArrowLeft size={16} />
-              <span>Return to Public Website</span>
+              <ArrowLeft size={15} />
+              <span>Return to Customer Store</span>
             </button>
           </div>
         </div>
@@ -430,11 +579,11 @@ export default function AdminPortalPage({ onNavigateHome }) {
   }
 
   // ==========================================
-  // 2. AUTHENTICATED: Standalone Admin Web App
+  // RENDER: FULL SUPERADMIN PORTAL APPLICATION
   // ==========================================
   return (
     <div className="admin-portal-app">
-      {/* Admin Top Navigation Bar */}
+      {/* Top Application Header */}
       <header className="admin-topbar">
         <div className="admin-topbar-left">
           <button
@@ -452,8 +601,8 @@ export default function AdminPortalPage({ onNavigateHome }) {
             />
             <div>
               <div className="admin-brand-name">
-                <span className="font-gurmukhi" style={{ color: '#15733E', marginRight: '6px' }}>ਸੱਚੀ ਖੇਤੀ</span>
-                Admin Portal
+                <span style={{ color: '#15733E', marginRight: '6px' }}>SachiKheti</span>
+                Superadmin
               </div>
               <div className="admin-brand-sub">LFPC Central Management System</div>
             </div>
@@ -479,39 +628,43 @@ export default function AdminPortalPage({ onNavigateHome }) {
             <span className="hide-on-mobile">Live Store</span>
           </button>
 
-          <div className="admin-user-pill">
-            <ShieldCheck size={16} color="#15733E" />
-            <span className="admin-user-name">{adminUser.username}</span>
+          <div className="admin-user-badge hide-on-mobile">
+            <ShieldCheck size={14} color="#15733E" />
+            <span>{adminUser.username}</span>
           </div>
 
           <button
             onClick={handleLogout}
             className="btn btn-secondary btn-sm admin-logout-btn"
-            title="Log Out of Admin Portal"
+            title="Log Out of Admin"
           >
-            <LogOut size={16} />
+            <LogOut size={15} />
             <span className="hide-on-mobile">Logout</span>
           </button>
         </div>
       </header>
 
-      {/* Main Container: Sidebar + Content */}
-      <div className="admin-portal-layout">
-        {/* Sidebar Backdrop (Mobile) */}
-        <div
-          className={`admin-sidebar-backdrop ${sidebarOpen ? 'open' : ''}`}
-          onClick={() => setSidebarOpen(false)}
-        />
+      {/* Floating Action Success Alert */}
+      {actionSuccess && (
+        <div className="admin-toast-banner">
+          <CheckCircle size={18} />
+          <span>{actionSuccess}</span>
+        </div>
+      )}
 
-        {/* Sidebar Navigation */}
+      {/* Main Workspace Layout (Sidebar + Content View) */}
+      <div className="admin-portal-body">
+        {/* Navigation Sidebar */}
         <aside className={`admin-portal-sidebar ${sidebarOpen ? 'open' : ''}`}>
           <div className="admin-sidebar-nav">
+            <div className="admin-nav-section-title">Operations</div>
+
             <button
               onClick={() => { setActiveTab('overview'); setSidebarOpen(false); }}
               className={`admin-nav-item ${activeTab === 'overview' ? 'active' : ''}`}
             >
               <TrendingUp size={18} />
-              <span>Dashboard Overview</span>
+              <span>Overview Metrics</span>
             </button>
 
             <button
@@ -521,17 +674,19 @@ export default function AdminPortalPage({ onNavigateHome }) {
               <ShoppingBag size={18} />
               <span>Orders Fulfillment</span>
               {pendingOrdersCount > 0 && (
-                <span className="admin-nav-badge-pill">{pendingOrdersCount}</span>
+                <span className="admin-nav-badge-alert">{pendingOrdersCount}</span>
               )}
             </button>
+
+            <div className="admin-nav-section-title" style={{ marginTop: '16px' }}>Catalog & Store</div>
 
             <button
               onClick={() => { setActiveTab('products'); setSidebarOpen(false); }}
               className={`admin-nav-item ${activeTab === 'products' ? 'active' : ''}`}
             >
               <Package size={18} />
-              <span>Catalog Products</span>
-              <span className="admin-nav-count">({products.length})</span>
+              <span>Products Catalog</span>
+              <span className="admin-nav-badge">{products.length}</span>
             </button>
 
             <button
@@ -540,7 +695,7 @@ export default function AdminPortalPage({ onNavigateHome }) {
             >
               <Layers size={18} />
               <span>Categories</span>
-              <span className="admin-nav-count">({categories.length})</span>
+              <span className="admin-nav-badge">{categories.length}</span>
             </button>
 
             <button
@@ -553,24 +708,25 @@ export default function AdminPortalPage({ onNavigateHome }) {
           </div>
 
           <div className="admin-sidebar-footer">
-            <div className="font-gurmukhi" style={{ color: '#0A3E22', fontSize: '0.84rem', fontWeight: 700, marginBottom: '2px' }}>
-              ਸੱਚੀ ਖੇਤੀ • LFPC
+            <div style={{ color: '#0A3E22', fontSize: '0.85rem', fontWeight: 700, marginBottom: '2px' }}>
+              SachiKheti Admin Platform
             </div>
             <div style={{ fontSize: '0.74rem', color: '#7A8B80' }}>
-              Database: PostgreSQL (Render)
+              Direct Farmer Prosperity • LFPC Ltd.
             </div>
           </div>
         </aside>
 
-        {/* Primary Content View */}
-        <main className="admin-portal-main">
-          {actionSuccess && (
-            <div className="admin-toast-banner">
-              <CheckCircle size={18} />
-              <span>{actionSuccess}</span>
-            </div>
-          )}
+        {/* Backdrop for mobile sidebar */}
+        {sidebarOpen && (
+          <div
+            className="admin-sidebar-backdrop"
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
 
+        {/* Content View Area */}
+        <main className="admin-portal-content">
           {/* ==================================================== */}
           {/* TAB 1: OVERVIEW METRICS                              */}
           {/* ==================================================== */}
@@ -578,84 +734,86 @@ export default function AdminPortalPage({ onNavigateHome }) {
             <div className="admin-tab-view">
               <div className="admin-view-header">
                 <div>
-                  <h1 className="admin-view-title">Performance & Revenue Overview</h1>
-                  <p className="admin-view-sub">Real-time agricultural orders and fulfillment statistics</p>
+                  <h1 className="admin-view-title">Executive Operations Overview</h1>
+                  <p className="admin-view-sub">Real-time performance metrics and live fulfillment queue</p>
                 </div>
-                <button onClick={openNewProductModal} className="btn btn-primary">
-                  <Plus size={17} />
+                <button onClick={openAddProductModal} className="btn btn-primary">
+                  <Plus size={16} />
                   <span>Add New Product</span>
                 </button>
               </div>
 
               {/* KPI Cards Grid */}
               <div className="admin-kpi-grid">
-                <div className="admin-kpi-card gold-border">
-                  <div className="admin-kpi-icon gold">
-                    <TrendingUp size={26} />
+                <div className="admin-kpi-card">
+                  <div className="admin-kpi-icon-wrap" style={{ background: '#EBF7EE', color: '#15733E' }}>
+                    <TrendingUp size={22} />
                   </div>
                   <div>
                     <div className="admin-kpi-label">Confirmed Revenue</div>
-                    <div className="admin-kpi-val">₹ {totalRevenue.toLocaleString('en-IN')}</div>
-                    <div className="admin-kpi-detail">Prepaid verified transactions</div>
+                    <div className="admin-kpi-value">₹ {totalRevenue.toLocaleString('en-IN')}</div>
+                    <div className="admin-kpi-meta">{orders.length} Total orders recorded</div>
                   </div>
                 </div>
 
                 <div className="admin-kpi-card">
-                  <div className="admin-kpi-icon green">
-                    <ShoppingBag size={26} />
-                  </div>
-                  <div>
-                    <div className="admin-kpi-label">Total Customer Orders</div>
-                    <div className="admin-kpi-val">{totalOrdersCount}</div>
-                    <div className="admin-kpi-detail">All checkout channels</div>
-                  </div>
-                </div>
-
-                <div className="admin-kpi-card alert-border">
-                  <div className="admin-kpi-icon amber">
-                    <Clock size={26} />
+                  <div className="admin-kpi-icon-wrap" style={{ background: '#FFF7E6', color: '#D97706' }}>
+                    <Clock size={22} />
                   </div>
                   <div>
                     <div className="admin-kpi-label">Pending Verification</div>
-                    <div className="admin-kpi-val">{pendingOrdersCount}</div>
-                    <div className="admin-kpi-detail">Awaiting packaging or dispatch</div>
+                    <div className="admin-kpi-value">{pendingOrdersCount}</div>
+                    <div className="admin-kpi-meta">Awaiting dispatch confirmation</div>
                   </div>
                 </div>
 
                 <div className="admin-kpi-card">
-                  <div className="admin-kpi-icon green">
-                    <Package size={26} />
+                  <div className="admin-kpi-icon-wrap" style={{ background: '#E6F4EA', color: '#0A3E22' }}>
+                    <Package size={22} />
                   </div>
                   <div>
                     <div className="admin-kpi-label">Active Catalog Items</div>
-                    <div className="admin-kpi-val">{inStockProductsCount} / {products.length}</div>
-                    <div className="admin-kpi-detail">In-stock agricultural products</div>
+                    <div className="admin-kpi-value">{inStockProductsCount} / {products.length}</div>
+                    <div className="admin-kpi-meta">Items ready for direct dispatch</div>
+                  </div>
+                </div>
+
+                <div className="admin-kpi-card">
+                  <div className="admin-kpi-icon-wrap" style={{ background: '#F3E8FF', color: '#7E22CE' }}>
+                    <Layers size={22} />
+                  </div>
+                  <div>
+                    <div className="admin-kpi-label">Product Categories</div>
+                    <div className="admin-kpi-value">{categories.length}</div>
+                    <div className="admin-kpi-meta">Configured product groupings</div>
                   </div>
                 </div>
               </div>
 
-              {/* Recent Orders Preview */}
-              <div className="admin-panel-card">
-                <div className="admin-card-header">
+              {/* Recent Orders Overview */}
+              <div className="admin-panel-card" style={{ marginTop: '28px' }}>
+                <div className="admin-panel-card-header">
                   <div>
-                    <h3 className="admin-card-title">Recent Customer Orders</h3>
-                    <p className="admin-card-sub">Latest 5 orders received from customers</p>
+                    <h3 className="admin-panel-title">Recent Customer Orders</h3>
+                    <p className="admin-panel-sub">Latest customer dispatches from SachiKheti store</p>
                   </div>
                   <button onClick={() => setActiveTab('orders')} className="btn btn-secondary btn-sm">
                     <span>View All Orders</span>
+                    <ExternalLink size={14} />
                   </button>
                 </div>
 
                 <div className="admin-table-container">
-                  <table className="data-table">
+                  <table className="admin-table">
                     <thead>
                       <tr>
                         <th>Order ID</th>
                         <th>Customer</th>
-                        <th>Phone</th>
-                        <th>Amount</th>
-                        <th>Method</th>
+                        <th>Contact</th>
+                        <th>Total Amount</th>
                         <th>Status</th>
+                        <th>Created</th>
+                        <th style={{ textAlign: 'right' }}>Actions</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -666,20 +824,28 @@ export default function AdminPortalPage({ onNavigateHome }) {
                           <td>{o.customerPhone}</td>
                           <td><strong>₹ {o.totalAmount.toLocaleString('en-IN')}</strong></td>
                           <td>
-                            <span className={`badge ${o.paymentMethod === 'WHATSAPP' ? 'badge-green' : 'badge-gold'}`}>
-                              {o.paymentMethod}
+                            <span className={`badge ${
+                              o.status === 'DELIVERED' ? 'badge-green' :
+                              o.status === 'PENDING' ? 'badge-gold' :
+                              o.status === 'SHIPPED' ? 'badge-blue' : 'badge-gray'
+                            }`}>
+                              {o.status}
                             </span>
                           </td>
-                          <td>
-                            <span className={`badge ${o.orderStatus === 'DELIVERED' ? 'badge-green' : 'badge-gold'}`}>
-                              {o.orderStatus}
-                            </span>
+                          <td>{new Date(o.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</td>
+                          <td style={{ textAlign: 'right' }}>
+                            <button
+                              onClick={() => { setActiveTab('orders'); setOrderSearch(o.orderNumber); }}
+                              className="btn btn-secondary btn-sm"
+                            >
+                              Manage
+                            </button>
                           </td>
                         </tr>
                       ))}
                       {orders.length === 0 && (
                         <tr>
-                          <td colSpan={6} style={{ textAlign: 'center', padding: '30px', color: '#7A8B80' }}>
+                          <td colSpan={7} style={{ textAlign: 'center', padding: '32px', color: '#7A8B80' }}>
                             No orders placed yet.
                           </td>
                         </tr>
@@ -692,28 +858,28 @@ export default function AdminPortalPage({ onNavigateHome }) {
           )}
 
           {/* ==================================================== */}
-          {/* TAB 2: PRODUCT CATALOG MANAGEMENT                    */}
+          {/* TAB 2: PRODUCTS CATALOG MANAGER                      */}
           {/* ==================================================== */}
           {activeTab === 'products' && (
             <div className="admin-tab-view">
               <div className="admin-view-header">
                 <div>
-                  <h1 className="admin-view-title">Product Catalog Manager</h1>
-                  <p className="admin-view-sub">Upload, edit pricing, manage inventory stock, and feature products live</p>
+                  <h1 className="admin-view-title">Products Catalog</h1>
+                  <p className="admin-view-sub">Manage your products, pricing, stock levels, and store visibility</p>
                 </div>
-                <button onClick={openNewProductModal} className="btn btn-primary">
-                  <Plus size={17} />
-                  <span>Add Farm Product</span>
+                <button onClick={openAddProductModal} className="btn btn-primary">
+                  <Plus size={16} />
+                  <span>Add New Product</span>
                 </button>
               </div>
 
-              {/* Filters Bar */}
+              {/* Search & Filter Toolbar */}
               <div className="admin-filter-bar">
                 <div className="admin-search-box">
                   <Search size={17} color="#7A8B80" className="admin-search-icon" />
                   <input
                     type="text"
-                    placeholder="Search by English or Punjabi title..."
+                    placeholder="Search products by title, category, or description..."
                     value={productSearch}
                     onChange={(e) => setProductSearch(e.target.value)}
                     className="form-input admin-search-input"
@@ -724,6 +890,7 @@ export default function AdminPortalPage({ onNavigateHome }) {
                 </div>
 
                 <div className="admin-filter-select-wrap">
+                  <Filter size={15} color="#7A8B80" />
                   <select
                     value={selectedProductCategory}
                     onChange={(e) => setSelectedProductCategory(e.target.value)}
@@ -731,9 +898,7 @@ export default function AdminPortalPage({ onNavigateHome }) {
                   >
                     <option value="all">All Categories ({products.length})</option>
                     {categories.map(c => (
-                      <option key={c.id} value={c.slug}>
-                        {c.name} ({c.namePunjabi})
-                      </option>
+                      <option key={c.id} value={c.id}>{c.name}</option>
                     ))}
                   </select>
                 </div>
@@ -741,11 +906,11 @@ export default function AdminPortalPage({ onNavigateHome }) {
 
               {/* Products Table */}
               <div className="admin-table-container">
-                <table className="data-table">
+                <table className="admin-table">
                   <thead>
                     <tr>
                       <th style={{ width: '60px' }}>Image</th>
-                      <th>Product Details</th>
+                      <th>Product Title</th>
                       <th>Category</th>
                       <th>Price & Unit</th>
                       <th>Stock Status</th>
@@ -765,9 +930,11 @@ export default function AdminPortalPage({ onNavigateHome }) {
                         </td>
                         <td>
                           <div style={{ fontWeight: 700, color: '#122117' }}>{p.title}</div>
-                          <div className="font-gurmukhi" style={{ fontSize: '0.8rem', color: '#15733E' }}>
-                            {p.titlePunjabi}
-                          </div>
+                          {p.description && (
+                            <div style={{ fontSize: '0.78rem', color: '#7A8B80', maxWidth: '280px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {p.description}
+                            </div>
+                          )}
                         </td>
                         <td>
                           <span className="badge" style={{ background: '#F0FAF4', color: '#0A3E22' }}>
@@ -830,7 +997,79 @@ export default function AdminPortalPage({ onNavigateHome }) {
           )}
 
           {/* ==================================================== */}
-          {/* TAB 3: ORDERS FULFILLMENT CENTER                     */}
+          {/* TAB 3: CATEGORIES MANAGEMENT (FULL CRUD)             */}
+          {/* ==================================================== */}
+          {activeTab === 'categories' && (
+            <div className="admin-tab-view">
+              <div className="admin-view-header">
+                <div>
+                  <h1 className="admin-view-title">Product Categories</h1>
+                  <p className="admin-view-sub">
+                    Create and manage product groupings. New categories immediately appear across storefront navigation and filters.
+                  </p>
+                </div>
+                <button onClick={openAddCategoryModal} className="btn btn-primary">
+                  <FolderPlus size={16} />
+                  <span>Add New Category</span>
+                </button>
+              </div>
+
+              <div className="admin-categories-grid">
+                {categories.map(c => (
+                  <div key={c.id} className="admin-category-card">
+                    <div className="admin-category-icon-box">
+                      <Layers size={24} color="#15733E" />
+                    </div>
+                    <div style={{ flexGrow: 1 }}>
+                      <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#122117' }}>{c.name}</h3>
+                      <p style={{ fontSize: '0.86rem', color: '#4A5B50', margin: '4px 0 10px' }}>
+                        {c.description || 'No description provided.'}
+                      </p>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '14px' }}>
+                        <span className="badge badge-green">
+                          Slug: <strong>{c.slug}</strong>
+                        </span>
+                        <span className="badge" style={{ background: '#EBF7EE', color: '#15733E' }}>
+                          {c._count?.products || 0} Products
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <button
+                          onClick={() => openEditCategoryModal(c)}
+                          className="btn btn-secondary btn-sm"
+                          style={{ flexGrow: 1, justifyContent: 'center' }}
+                        >
+                          <Edit size={14} />
+                          <span>Edit</span>
+                        </button>
+                        <button
+                          onClick={() => handleDeleteCategory(c.id, c.name, c._count?.products || 0)}
+                          className="btn btn-secondary btn-sm text-red"
+                          title="Delete category"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                {categories.length === 0 && (
+                  <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '60px 20px', background: '#FFFFFF', borderRadius: '14px', border: '1px solid #E8ECE9' }}>
+                    <Layers size={36} color="#7A8B80" style={{ margin: '0 auto 12px' }} />
+                    <h3 style={{ fontSize: '1.2rem', color: '#122117', marginBottom: '6px' }}>No Categories Configured</h3>
+                    <p style={{ color: '#7A8B80', marginBottom: '18px' }}>Create your first category to organize catalog products.</p>
+                    <button onClick={openAddCategoryModal} className="btn btn-primary">
+                      <Plus size={16} />
+                      <span>Create First Category</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* ==================================================== */}
+          {/* TAB 4: ORDERS FULFILLMENT CENTER                     */}
           {/* ==================================================== */}
           {activeTab === 'orders' && (
             <div className="admin-tab-view">
@@ -898,105 +1137,66 @@ export default function AdminPortalPage({ onNavigateHome }) {
                       <div className="admin-order-customer-name">{o.customerName}</div>
                       <div className="admin-order-customer-detail">
                         <Phone size={14} color="#15733E" />
-                        <a href={`tel:${o.customerPhone}`} style={{ color: '#0A3E22', fontWeight: 600 }}>{o.customerPhone}</a>
+                        <a href={`tel:${o.customerPhone}`} style={{ color: '#15733E', textDecoration: 'underline' }}>
+                          {o.customerPhone}
+                        </a>
                         <a
-                          href={`https://wa.me/${o.customerPhone.replace(/[^0-9]/g, '')}?text=Hello%20${encodeURIComponent(o.customerName)},%20this%20is%20SachiKheti%20regarding%20your%20order%20${o.orderNumber}`}
+                          href={`https://wa.me/91${o.customerPhone.replace(/\D/g, '')}?text=${encodeURIComponent(`Hello ${o.customerName}! Regarding your SachiKheti order #${o.orderNumber}...`)}`}
                           target="_blank"
                           rel="noreferrer"
-                          className="admin-wa-icon-link"
-                          title="Message on WhatsApp"
+                          className="btn btn-secondary btn-sm"
+                          style={{ padding: '2px 8px', fontSize: '0.75rem', marginLeft: 'auto' }}
                         >
-                          Chat on WhatsApp
+                          WhatsApp Customer
                         </a>
                       </div>
                       <div className="admin-order-customer-detail">
-                        <MapPin size={14} color="#B46F00" />
+                        <MapPin size={14} color="#7A8B80" />
                         <span>{o.address}, {o.city} {o.pincode ? `(${o.pincode})` : ''}</span>
                       </div>
-                      {o.notes && (
-                        <div style={{ fontSize: '0.8rem', color: '#7A8B80', fontStyle: 'italic', marginTop: '4px' }}>
-                          Note: "{o.notes}"
-                        </div>
-                      )}
                     </div>
 
-                    {/* Ordered Items Breakdown */}
-                    <div className="admin-order-items-box">
-                      <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#0A3E22', marginBottom: '6px' }}>
-                        Ordered Items ({Array.isArray(o.items) ? o.items.length : 1}):
-                      </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        {Array.isArray(o.items) ? o.items.map((it, idx) => (
-                          <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
-                            <span>{it.title} <span style={{ color: '#7A8B80' }}>x {it.quantity}</span></span>
-                            <strong>₹ {(it.price * it.quantity).toLocaleString('en-IN')}</strong>
-                          </div>
-                        )) : (
-                          <div style={{ fontSize: '0.85rem' }}>{String(o.items)}</div>
-                        )}
-                      </div>
+                    <div className="admin-order-items-list">
+                      <div className="admin-order-items-title">Ordered Products:</div>
+                      {(() => {
+                        try {
+                          const items = typeof o.items === 'string' ? JSON.parse(o.items) : o.items;
+                          return (items || []).map((item, idx) => (
+                            <div key={idx} className="admin-order-item-row">
+                              <span><strong>{item.quantity}x</strong> {item.title}</span>
+                              <span>₹ {(item.price * item.quantity).toLocaleString('en-IN')}</span>
+                            </div>
+                          ));
+                        } catch (e) {
+                          return <div style={{ fontSize: '0.8rem', color: '#7A8B80' }}>Items detail encoded</div>;
+                        }
+                      })()}
                     </div>
 
-                    {/* Status Update Dropdown */}
-                    <div className="admin-order-status-row">
-                      <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#4A5B50' }}>Fulfillment Status:</span>
+                    <div className="admin-order-status-bar">
+                      <span className="admin-order-status-label">Fulfillment Status:</span>
                       <select
-                        value={o.orderStatus}
-                        onChange={(e) => handleOrderStatusChange(o.id, e.target.value)}
-                        className="form-select admin-status-select"
+                        value={o.status}
+                        onChange={(e) => handleUpdateOrderStatus(o.id, e.target.value)}
+                        className="form-select admin-order-status-select"
                       >
-                        <option value="PENDING">PENDING</option>
-                        <option value="CONFIRMED">CONFIRMED</option>
-                        <option value="PROCESSING">PROCESSING</option>
-                        <option value="SHIPPED">SHIPPED</option>
-                        <option value="DELIVERED">DELIVERED</option>
-                        <option value="CANCELLED">CANCELLED</option>
+                        <option value="PENDING">Pending</option>
+                        <option value="CONFIRMED">Confirmed</option>
+                        <option value="PROCESSING">Processing</option>
+                        <option value="SHIPPED">Shipped</option>
+                        <option value="DELIVERED">Delivered</option>
+                        <option value="CANCELLED">Cancelled</option>
                       </select>
                     </div>
                   </div>
                 ))}
-
                 {filteredOrders.length === 0 && (
-                  <div style={{ textAlign: 'center', padding: '60px 20px', background: '#FFFFFF', borderRadius: '16px', gridColumn: '1 / -1', border: '1px solid var(--border-light)' }}>
-                    <ShoppingBag size={40} color="#7A8B80" style={{ margin: '0 auto 12px' }} />
-                    <h3 style={{ fontSize: '1.2rem', color: '#0A3E22' }}>No orders found</h3>
-                    <p style={{ color: '#7A8B80', fontSize: '0.9rem' }}>Try adjusting your search query or filter.</p>
+                  <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '60px 20px', background: '#FFFFFF', borderRadius: '14px', border: '1px solid #E8ECE9' }}>
+                    <ShoppingBag size={36} color="#7A8B80" style={{ margin: '0 auto 12px' }} />
+                    <h3 style={{ fontSize: '1.2rem', color: '#122117', marginBottom: '6px' }}>No Orders Found</h3>
+                    <p style={{ color: '#7A8B80' }}>No customer orders match the current status and search filters.</p>
                   </div>
                 )}
-              </div>
-            </div>
-          )}
-
-          {/* ==================================================== */}
-          {/* TAB 4: CATEGORIES MANAGEMENT                         */}
-          {/* ==================================================== */}
-          {activeTab === 'categories' && (
-            <div className="admin-tab-view">
-              <div className="admin-view-header">
-                <div>
-                  <h1 className="admin-view-title">Agricultural Categories</h1>
-                  <p className="admin-view-sub">All database categories configured for product organization</p>
-                </div>
-              </div>
-
-              <div className="admin-categories-grid">
-                {categories.map(c => (
-                  <div key={c.id} className="admin-category-card">
-                    <div className="admin-category-icon-box">
-                      <Layers size={24} color="#15733E" />
-                    </div>
-                    <div style={{ flexGrow: 1 }}>
-                      <div className="font-gurmukhi" style={{ fontSize: '1.1rem', color: '#15733E', fontWeight: 700 }}>
-                        {c.namePunjabi}
-                      </div>
-                      <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#122117' }}>{c.name}</h3>
-                      <p style={{ fontSize: '0.85rem', color: '#4A5B50', margin: '4px 0 10px' }}>{c.description}</p>
-                      <span className="badge badge-green">
-                        Slug: {c.slug} • {c._count?.products || 0} Products
-                      </span>
-                    </div>
-                  </div>
-                ))}
               </div>
             </div>
           )}
@@ -1084,47 +1284,49 @@ export default function AdminPortalPage({ onNavigateHome }) {
             </div>
 
             <form onSubmit={handleSaveProduct}>
-              <div className="checkout-grid-2col">
-                <div className="form-group">
-                  <label className="form-label">Title (English) *</label>
-                  <input
-                    type="text"
-                    required
-                    value={productForm.title}
-                    onChange={(e) => setProductForm({ ...productForm, title: e.target.value })}
-                    className="form-input"
-                    placeholder="e.g. Pure Desi Cow Ghee"
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Title (ਪੰਜਾਬੀ / Gurmukhi) *</label>
-                  <input
-                    type="text"
-                    required
-                    value={productForm.titlePunjabi}
-                    onChange={(e) => setProductForm({ ...productForm, titlePunjabi: e.target.value })}
-                    className="form-input"
-                    placeholder="e.g. ਸ਼ੁੱਧ ਦੇਸੀ ਗਾਂ ਦਾ ਘਿਓ"
-                  />
-                </div>
+              <div className="form-group">
+                <label className="form-label">Product Name (English US) *</label>
+                <input
+                  type="text"
+                  required
+                  value={productForm.title}
+                  onChange={(e) => setProductForm({ ...productForm, title: e.target.value })}
+                  className="form-input"
+                  placeholder="e.g. Pure Vedic Bilona A2 Desi Cow Ghee"
+                />
               </div>
 
               <div className="checkout-grid-2col">
                 <div className="form-group">
                   <label className="form-label">Category *</label>
                   <select
+                    required
                     value={productForm.categoryId}
                     onChange={(e) => setProductForm({ ...productForm, categoryId: e.target.value })}
                     className="form-select"
-                    required
                   >
+                    <option value="">Select Category...</option>
                     {categories.map(c => (
-                      <option key={c.id} value={c.id}>{c.name} ({c.namePunjabi})</option>
+                      <option key={c.id} value={c.id}>{c.name}</option>
                     ))}
                   </select>
                 </div>
                 <div className="form-group">
-                  <label className="form-label">Price (₹ INR) *</label>
+                  <label className="form-label">Unit Specification *</label>
+                  <input
+                    type="text"
+                    required
+                    value={productForm.unit}
+                    onChange={(e) => setProductForm({ ...productForm, unit: e.target.value })}
+                    className="form-input"
+                    placeholder="e.g. 1 Litre, 1 Kg, 50 Kg Bag"
+                  />
+                </div>
+              </div>
+
+              <div className="checkout-grid-2col">
+                <div className="form-group">
+                  <label className="form-label">Price in ₹ (INR) *</label>
                   <input
                     type="number"
                     step="0.01"
@@ -1135,22 +1337,8 @@ export default function AdminPortalPage({ onNavigateHome }) {
                     placeholder="e.g. 1450"
                   />
                 </div>
-              </div>
-
-              <div className="checkout-grid-2col">
                 <div className="form-group">
-                  <label className="form-label">Packaging Unit *</label>
-                  <input
-                    type="text"
-                    required
-                    value={productForm.unit}
-                    onChange={(e) => setProductForm({ ...productForm, unit: e.target.value })}
-                    className="form-input"
-                    placeholder="e.g. 1 Litre Glass Jar, 50 kg Bag"
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Stock Inventory Quantity</label>
+                  <label className="form-label">Stock Quantity</label>
                   <input
                     type="number"
                     value={productForm.stockCount}
@@ -1162,24 +1350,36 @@ export default function AdminPortalPage({ onNavigateHome }) {
               </div>
 
               <div className="form-group">
-                <label className="form-label">Product Image URL</label>
+                <label className="form-label">Image URL *</label>
                 <input
                   type="url"
+                  required
                   value={productForm.imageUrl}
                   onChange={(e) => setProductForm({ ...productForm, imageUrl: e.target.value })}
                   className="form-input"
-                  placeholder="https://images.unsplash.com/..."
+                  placeholder="https://..."
                 />
+                {productForm.imageUrl && (
+                  <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <img
+                      src={productForm.imageUrl}
+                      alt="Preview"
+                      style={{ width: '48px', height: '48px', objectFit: 'cover', borderRadius: '6px', border: '1px solid #E8ECE9' }}
+                      onError={(e) => { e.target.style.display = 'none'; }}
+                    />
+                    <span style={{ fontSize: '0.78rem', color: '#7A8B80' }}>Live Image Preview</span>
+                  </div>
+                )}
               </div>
 
               <div className="form-group">
-                <label className="form-label">Description</label>
+                <label className="form-label">Product Description</label>
                 <textarea
                   rows={3}
                   value={productForm.description}
                   onChange={(e) => setProductForm({ ...productForm, description: e.target.value })}
                   className="form-textarea"
-                  placeholder="Detailed artisanal process and farm origins..."
+                  placeholder="Detailed description of the product, farm origin, purity certifications..."
                 />
               </div>
 
@@ -1191,7 +1391,7 @@ export default function AdminPortalPage({ onNavigateHome }) {
                     onChange={(e) => setProductForm({ ...productForm, inStock: e.target.checked })}
                     style={{ width: '18px', height: '18px' }}
                   />
-                  <span>Available In Stock</span>
+                  <span>Mark as In-Stock</span>
                 </label>
 
                 <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.9rem', fontWeight: 600 }}>
@@ -1201,11 +1401,11 @@ export default function AdminPortalPage({ onNavigateHome }) {
                     onChange={(e) => setProductForm({ ...productForm, featured: e.target.checked })}
                     style={{ width: '18px', height: '18px' }}
                   />
-                  <span>★ LFPC Choice (Featured)</span>
+                  <span>Mark as Featured Product</span>
                 </label>
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', borderTop: '1px solid var(--border-light)', paddingTop: '16px' }}>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
                 <button
                   type="button"
                   onClick={() => setShowProductModal(false)}
@@ -1218,7 +1418,107 @@ export default function AdminPortalPage({ onNavigateHome }) {
                   disabled={savingProduct}
                   className="btn btn-primary"
                 >
-                  {savingProduct ? 'Saving...' : editingProduct ? 'Save Changes' : 'Create & Publish'}
+                  {savingProduct ? (
+                    <>
+                      <RefreshCw size={16} className="spin" />
+                      <span>Saving to Database...</span>
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle size={16} />
+                      <span>{editingProduct ? 'Save Changes' : 'Create Product'}</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ==================================================== */}
+      {/* ADD / EDIT CATEGORY MODAL                            */}
+      {/* ==================================================== */}
+      {showCategoryModal && (
+        <div className="modal-overlay" style={{ zIndex: 600 }}>
+          <div className="modal-content" style={{ maxWidth: '520px' }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <div>
+                <h3 style={{ fontSize: '1.4rem', fontWeight: 800 }}>
+                  {editingCategory ? 'Edit Category' : 'Create New Category'}
+                </h3>
+                <p style={{ fontSize: '0.85rem', color: '#7A8B80' }}>
+                  Categories automatically appear in the storefront navbar and product filters.
+                </p>
+              </div>
+              <button onClick={() => setShowCategoryModal(false)} className="modal-close-btn">
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveCategory}>
+              <div className="form-group">
+                <label className="form-label">Category Name (English US) *</label>
+                <input
+                  type="text"
+                  required
+                  value={categoryForm.name}
+                  onChange={handleCategoryNameChange}
+                  className="form-input"
+                  placeholder="e.g. Cold Pressed Oils, Organic Pulses"
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">URL Slug *</label>
+                <input
+                  type="text"
+                  required
+                  value={categoryForm.slug}
+                  onChange={(e) => setCategoryForm({ ...categoryForm, slug: slugify(e.target.value) })}
+                  className="form-input"
+                  placeholder="e.g. cold-pressed-oils"
+                />
+                <span style={{ fontSize: '0.78rem', color: '#7A8B80', display: 'block', marginTop: '4px' }}>
+                  Used in URL navigation, e.g. /#catalog?category={categoryForm.slug || 'category-name'}
+                </span>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Description (Optional)</label>
+                <textarea
+                  rows={2}
+                  value={categoryForm.description}
+                  onChange={(e) => setCategoryForm({ ...categoryForm, description: e.target.value })}
+                  className="form-textarea"
+                  placeholder="Short description of this product grouping..."
+                />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '20px' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowCategoryModal(false)}
+                  className="btn btn-secondary"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingCategory}
+                  className="btn btn-primary"
+                >
+                  {savingCategory ? (
+                    <>
+                      <RefreshCw size={16} className="spin" />
+                      <span>Saving Category...</span>
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle size={16} />
+                      <span>{editingCategory ? 'Update Category' : 'Save Category'}</span>
+                    </>
+                  )}
                 </button>
               </div>
             </form>
@@ -1228,4 +1528,3 @@ export default function AdminPortalPage({ onNavigateHome }) {
     </div>
   );
 }
-

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShoppingBag, Truck, Menu, X, MessageCircle, ChevronRight, Sparkles } from 'lucide-react';
+import { ShoppingBag, Truck, Menu, X, MessageCircle, ChevronRight, Sparkles, Layers } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 
 const BRAND_NAMES = [
@@ -12,6 +12,19 @@ export default function Navbar({ currentPath = '/', onNavigate, onOpenAdmin, onO
   const { totalItems, setIsCartOpen } = useCart();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [currentBrandIndex, setCurrentBrandIndex] = useState(0);
+  const [categories, setCategories] = useState([]);
+
+  // Fetch dynamic categories from database
+  useEffect(() => {
+    fetch('/api/categories')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && Array.isArray(data.data)) {
+          setCategories(data.data);
+        }
+      })
+      .catch(err => console.error('Error loading navbar categories:', err));
+  }, []);
 
   // Circular loop interval cycling every 2.4 seconds: English -> Punjabi -> Hindi
   useEffect(() => {
@@ -58,22 +71,24 @@ export default function Navbar({ currentPath = '/', onNavigate, onOpenAdmin, onO
               else window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
           >
-            <img
-              src="/assets/brand/sachi-kheti-emblem.jpg"
-              alt="SachiKheti Emblem"
-              className="nav-logo-img"
-            />
-            <div className="nav-title-box">
+            <div className="nav-logo-img-wrap">
+              <img
+                src="/assets/brand/sachi-kheti-emblem.jpg"
+                alt="SachiKheti Emblem"
+                className="nav-logo-img"
+              />
+            </div>
+            <div className="nav-brand-text">
               <span
-                key={currentBrandIndex}
-                className={`nav-rotating-title ${currentBrand.className}`}
+                key={currentBrand.lang}
+                className={`brand-title brand-fade-in ${currentBrand.className}`}
               >
                 {currentBrand.text}
               </span>
             </div>
           </a>
 
-          {/* Desktop Navigation Links */}
+          {/* Desktop Navigation Links (Dynamically populated from Database) */}
           <nav className="desktop-nav">
             <ul className="nav-links">
               <li>
@@ -81,26 +96,22 @@ export default function Navbar({ currentPath = '/', onNavigate, onOpenAdmin, onO
                   All Products
                 </a>
               </li>
-              <li>
-                <a href="#catalog" className="nav-link" onClick={() => handleNavClick('dairy')}>
-                  Pure Dairy
-                </a>
-              </li>
-              <li>
-                <a href="#catalog" className="nav-link" onClick={() => handleNavClick('sweets')}>
-                  Desi Sweets
-                </a>
-              </li>
-              <li>
-                <a href="#catalog" className="nav-link" onClick={() => handleNavClick('manure')}>
-                  Organic Manure
-                </a>
-              </li>
-              <li>
-                <a href="#catalog" className="nav-link" onClick={() => handleNavClick('machinery')}>
-                  Machinery
-                </a>
-              </li>
+
+              {categories.slice(0, 5).map((cat) => (
+                <li key={cat.id}>
+                  <a
+                    href={`#catalog?category=${cat.slug}`}
+                    className="nav-link"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      handleNavClick(cat.slug);
+                    }}
+                  >
+                    {cat.name}
+                  </a>
+                </li>
+              ))}
+
               <li>
                 <a
                   href="/story"
@@ -151,42 +162,42 @@ export default function Navbar({ currentPath = '/', onNavigate, onOpenAdmin, onO
         </div>
       </header>
 
-      {/* Mobile Navigation Drawer */}
+      {/* Mobile Sliding Navigation Drawer */}
       <div
         className={`mobile-nav-backdrop ${mobileMenuOpen ? 'open' : ''}`}
         onClick={() => setMobileMenuOpen(false)}
+        aria-hidden="true"
       />
 
-      <aside className={`mobile-nav-drawer ${mobileMenuOpen ? 'open' : ''}`}>
+      <aside
+        className={`mobile-nav-drawer ${mobileMenuOpen ? 'open' : ''}`}
+        aria-label="Mobile Navigation"
+      >
         {/* Drawer Header */}
         <div className="mobile-nav-header">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div className="mobile-nav-brand">
             <img
               src="/assets/brand/sachi-kheti-emblem.jpg"
-              alt="SachiKheti Emblem"
-              style={{ width: '38px', height: '38px', borderRadius: '8px' }}
+              alt="SachiKheti"
+              className="mobile-nav-logo"
             />
             <div>
-              <div className="font-gurmukhi" style={{ fontSize: '1.15rem', color: '#15733E', lineHeight: 1.1 }}>
-                ਸੱਚੀ ਖੇਤੀ
-              </div>
-              <div style={{ fontSize: '0.72rem', color: '#7A8B80', letterSpacing: '0.04em' }}>
-                LFPC Agricultural Store
-              </div>
+              <div className="mobile-nav-title">SachiKheti</div>
+              <div className="mobile-nav-sub">Pure Farm Direct</div>
             </div>
           </div>
           <button
             onClick={() => setMobileMenuOpen(false)}
-            className="mobile-nav-close-btn"
-            aria-label="Close Menu"
+            className="mobile-nav-close"
+            aria-label="Close Navigation"
           >
             <X size={22} />
           </button>
         </div>
 
-        {/* Drawer Body: Category Navigation */}
+        {/* Drawer Body Links */}
         <div className="mobile-nav-body">
-          <div className="mobile-nav-section-title">Product Categories</div>
+          <div className="mobile-nav-section-title">Store Catalog</div>
           <ul className="mobile-nav-list">
             <li>
               <button onClick={() => handleNavClick('all')} className="mobile-nav-item">
@@ -194,36 +205,16 @@ export default function Navbar({ currentPath = '/', onNavigate, onOpenAdmin, onO
                 <ChevronRight size={16} color="#7A8B80" />
               </button>
             </li>
-            <li>
-              <button onClick={() => handleNavClick('dairy')} className="mobile-nav-item">
-                <span>🥛 Pure Desi Cow Dairy & A2 Milk</span>
-                <ChevronRight size={16} color="#7A8B80" />
-              </button>
-            </li>
-            <li>
-              <button onClick={() => handleNavClick('sweets')} className="mobile-nav-item">
-                <span>🍯 Traditional Desi Sweets & Pinnis</span>
-                <ChevronRight size={16} color="#7A8B80" />
-              </button>
-            </li>
-            <li>
-              <button onClick={() => handleNavClick('manure')} className="mobile-nav-item">
-                <span>🌱 Organic Vermicompost & Fertilizers</span>
-                <ChevronRight size={16} color="#7A8B80" />
-              </button>
-            </li>
-            <li>
-              <button onClick={() => handleNavClick('machinery')} className="mobile-nav-item">
-                <span>🚜 Farming Machinery & Tools</span>
-                <ChevronRight size={16} color="#7A8B80" />
-              </button>
-            </li>
-            <li>
-              <button onClick={() => handleNavClick('produce')} className="mobile-nav-item">
-                <span>🌻 Raw Mustard Oil & Forest Honey</span>
-                <ChevronRight size={16} color="#7A8B80" />
-              </button>
-            </li>
+
+            {categories.map((cat) => (
+              <li key={cat.id}>
+                <button onClick={() => handleNavClick(cat.slug)} className="mobile-nav-item">
+                  <span>🌿 {cat.name}</span>
+                  <ChevronRight size={16} color="#7A8B80" />
+                </button>
+              </li>
+            ))}
+
             <li>
               <button
                 className={`mobile-nav-item ${currentPath === '/story' ? 'active' : ''}`}
@@ -268,9 +259,9 @@ export default function Navbar({ currentPath = '/', onNavigate, onOpenAdmin, onO
 
         {/* Drawer Footer */}
         <div className="mobile-nav-footer">
-          <p className="font-gurmukhi" style={{ color: '#0A3E22', fontSize: '0.85rem', fontWeight: 700, textAlign: 'center', marginBottom: '4px' }}>
-            "ਚੰਗੀ ਸੋਚ ਸਖ਼ਤ ਮਿਹਨਤ, ਫਿਰ ਹੁੰਦੀ ਰੱਬ ਦੀ ਰਹਿਮਤ"
-          </p>
+          <div style={{ color: '#0A3E22', fontSize: '0.85rem', fontWeight: 700, textAlign: 'center', marginBottom: '4px' }}>
+            SachiKheti by LFPC
+          </div>
           <div style={{ fontSize: '0.72rem', color: '#7A8B80', textAlign: 'center' }}>
             LFPC Ltd. • Fatehabad, Haryana
           </div>
