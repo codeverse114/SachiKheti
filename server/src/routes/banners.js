@@ -18,6 +18,30 @@ router.get('/', async (req, res) => {
   }
 });
 
+// POST /api/banners (Admin Only - Create Banner)
+router.post('/', verifyAdminToken, async (req, res) => {
+  try {
+    const { title, message, isActive = true, link } = req.body;
+    if (!title || !message) {
+      return res.status(400).json({ success: false, message: 'Title and message are required' });
+    }
+
+    const newBanner = await prisma.banner.create({
+      data: {
+        title: title.trim(),
+        message: message.trim(),
+        isActive: Boolean(isActive),
+        link: link ? link.trim() : null,
+      }
+    });
+
+    res.status(201).json({ success: true, message: 'Banner created successfully', data: newBanner });
+  } catch (error) {
+    console.error('Create banner error:', error);
+    res.status(500).json({ success: false, message: 'Failed to create banner' });
+  }
+});
+
 // PUT /api/banners/:id (Admin Only)
 router.put('/:id', verifyAdminToken, async (req, res) => {
   try {
@@ -38,6 +62,20 @@ router.put('/:id', verifyAdminToken, async (req, res) => {
   } catch (error) {
     console.error('Update banner error:', error);
     res.status(500).json({ success: false, message: 'Failed to update banner' });
+  }
+});
+
+// DELETE /api/banners/:id (Admin Only - Delete Banner)
+router.delete('/:id', verifyAdminToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    await prisma.banner.delete({
+      where: { id }
+    });
+    res.json({ success: true, message: 'Banner deleted successfully' });
+  } catch (error) {
+    console.error('Delete banner error:', error);
+    res.status(500).json({ success: false, message: 'Failed to delete banner' });
   }
 });
 

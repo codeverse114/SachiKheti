@@ -86,6 +86,24 @@ export default function AdminPortalPage({ onNavigateHome }) {
     icon: 'package',
   });
 
+  // Order Add / Edit Modal state (Full Database CRUD)
+  const [showOrderModal, setShowOrderModal] = useState(false);
+  const [editingOrder, setEditingOrder] = useState(null);
+  const [savingOrder, setSavingOrder] = useState(false);
+  const [orderForm, setOrderForm] = useState({
+    customerName: '',
+    customerPhone: '',
+    address: '',
+    city: 'Fatehabad',
+    pincode: '',
+    totalAmount: '',
+    paymentMethod: 'WHATSAPP',
+    orderStatus: 'PENDING',
+    paymentStatus: 'PENDING',
+    itemsText: '',
+    notes: '',
+  });
+
   // Helper to auto-generate slug from name
   const slugify = (text) => {
     return text
@@ -435,8 +453,152 @@ export default function AdminPortalPage({ onNavigateHome }) {
   };
 
   // ==========================================
-  // BANNER UPDATE HANDLER
+  // ORDER FULL CRUD HANDLERS (CREATE, UPDATE, DELETE)
   // ==========================================
+  const openAddOrderModal = () => {
+    setEditingOrder(null);
+    setOrderForm({
+      customerName: '',
+      customerPhone: '',
+      address: '',
+      city: 'Fatehabad',
+      pincode: '125050',
+      totalAmount: '',
+      paymentMethod: 'WHATSAPP',
+      orderStatus: 'PENDING',
+      paymentStatus: 'PENDING',
+      itemsText: '1x Vedic Bilona Cow Ghee (1 Litre)',
+      notes: 'Direct phone / WhatsApp order',
+    });
+    setShowOrderModal(true);
+  };
+
+  const openEditOrderModal = (order) => {
+    setEditingOrder(order);
+    const itemsStr = Array.isArray(order.items)
+      ? order.items.map(it => `${it.quantity || 1}x ${it.title}`).join(', ')
+      : typeof order.items === 'string'
+      ? order.items
+      : '';
+
+    setOrderForm({
+      customerName: order.customerName,
+      customerPhone: order.customerPhone,
+      address: order.address,
+      city: order.city || 'Fatehabad',
+      pincode: order.pincode || '',
+      totalAmount: (order.totalAmount || '').toString(),
+      paymentMethod: order.paymentMethod || 'WHATSAPP',
+      orderStatus: order.orderStatus || order.status || 'PENDING',
+      paymentStatus: order.paymentStatus || 'PENDING',
+      itemsText: itemsStr,
+      notes: order.notes || '',
+    });
+    setShowOrderModal(true);
+  };
+
+  const handleSaveOrder = async (e) => {
+    e.preventDefault();
+    if (!orderForm.customerName.trim() || !orderForm.customerPhone.trim() || !orderForm.totalAmount) {
+      alert('Please fill customer name, phone, and total amount');
+      return;
+    }
+    setSavingOrder(true);
+    try {
+      if (editingOrder) {
+        const res = await fetch(`/api/orders/${editingOrder.id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify(orderForm)
+        });
+        const data = await res.json();
+        if (data.success) {
+          setShowOrderModal(false);
+          setActionSuccess(`Order #${editingOrder.orderNumber} updated in database.`);
+          setTimeout(() => setActionSuccess(''), 4000);
+          loadAllData();
+        } else {
+          alert(data.message || 'Failed to update order');
+        }
+      } else {
+        const res = await fetch('/api/orders', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            ...orderForm,
+            items: orderForm.itemsText
+              ? [{ title: orderForm.itemsText, quantity: 1, price: parseFloat(orderForm.totalAmount) }]
+              : [{ title: 'Custom Agricultural Order', quantity: 1, price: parseFloat(orderForm.totalAmount) }]
+          })
+        });
+        const data = await res.json();
+        if (data.success) {
+          setShowOrderModal(false);
+          setActionSuccess(`Manual order #${data.data.orderNumber} created and saved in database.`);
+          setTimeout(() => setActionSuccess(''), 4000);
+          loadAllData();
+        } else {
+          alert(data.message || 'Failed to create order');
+        }
+      }
+    } catch (err) {
+      alert('Network error while saving order');
+    } finally {
+      setSavingOrder(false);
+    }
+  };
+
+  const handleDeleteOrder = async (orderId, orderNumber) => {
+    if (!window.confirm(`Are you sure you want to permanently delete Order #${orderNumber} from the database? This action cannot be undone.`)) {
+      return;
+    }
+    try {
+      const res = await fetch(`/api/orders/${orderId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.success) {
+        setActionSuccess(`Order #${orderNumber} deleted from database.`);
+        setTimeout(() => setActionSuccess(''), 4000);
+        loadAllData();
+      } else {
+        alert(data.message || 'Failed to delete order');
+      }
+    } catch (err) {
+      alert('Error deleting order');
+    }
+  };
+
+  // ==========================================
+  // BANNER FULL CRUD HANDLERS
+  // ==========================================
+  const handleDeleteBanner = async () => {
+    if (!banner.id) return;
+    if (!window.confirm('Are you sure you want to delete this promotional banner from the database?')) return;
+    try {
+      const res = await fetch(`/api/banners/${banner.id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.success) {
+        setBanner({ id: '', title: '', message: '', isActive: false });
+        setActionSuccess('Announcement ribbon deleted from database.');
+        setTimeout(() => setActionSuccess(''), 4000);
+        loadAllData();
+      } else {
+        alert(data.message || 'Failed to delete banner');
+      }
+    } catch (err) {
+      alert('Error deleting banner');
+    }
+  };
   const handleSaveBanner = async (e) => {
     e.preventDefault();
     try {
@@ -1382,8 +1544,12 @@ export default function AdminPortalPage({ onNavigateHome }) {
               <div className="admin-view-header">
                 <div>
                   <h1 className="admin-view-title">Order Fulfillment Center</h1>
-                  <p className="admin-view-sub">Manage live customer orders, update delivery dispatch, and communicate directly</p>
+                  <p className="admin-view-sub">Manage customer orders, create manual phone orders, update delivery status, and delete test records</p>
                 </div>
+                <button onClick={openAddOrderModal} className="btn btn-primary">
+                  <Plus size={16} />
+                  <span>Create Manual Order</span>
+                </button>
               </div>
 
               {/* Order Search & Filters */}
@@ -1479,20 +1645,40 @@ export default function AdminPortalPage({ onNavigateHome }) {
                       })()}
                     </div>
 
-                    <div className="admin-order-status-bar">
-                      <span className="admin-order-status-label">Fulfillment Status:</span>
-                      <select
-                        value={o.status}
-                        onChange={(e) => handleUpdateOrderStatus(o.id, e.target.value)}
-                        className="form-select admin-order-status-select"
-                      >
-                        <option value="PENDING">Pending</option>
-                        <option value="CONFIRMED">Confirmed</option>
-                        <option value="PROCESSING">Processing</option>
-                        <option value="SHIPPED">Shipped</option>
-                        <option value="DELIVERED">Delivered</option>
-                        <option value="CANCELLED">Cancelled</option>
-                      </select>
+                    <div className="admin-order-status-bar" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span className="admin-order-status-label">Status:</span>
+                        <select
+                          value={o.orderStatus || o.status}
+                          onChange={(e) => handleUpdateOrderStatus(o.id, e.target.value)}
+                          className="form-select admin-order-status-select"
+                        >
+                          <option value="PENDING">Pending</option>
+                          <option value="CONFIRMED">Confirmed</option>
+                          <option value="PROCESSING">Processing</option>
+                          <option value="SHIPPED">Shipped</option>
+                          <option value="DELIVERED">Delivered</option>
+                          <option value="CANCELLED">Cancelled</option>
+                        </select>
+                      </div>
+
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <button
+                          onClick={() => openEditOrderModal(o)}
+                          className="btn btn-secondary btn-sm"
+                          title="Edit Order Details"
+                        >
+                          <Edit size={14} />
+                          <span>Edit</span>
+                        </button>
+                        <button
+                          onClick={() => handleDeleteOrder(o.id, o.orderNumber)}
+                          className="btn btn-secondary btn-sm text-red"
+                          title="Permanently Delete Order from Database"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -1558,10 +1744,23 @@ export default function AdminPortalPage({ onNavigateHome }) {
                     </label>
                   </div>
 
-                  <button type="submit" className="btn btn-primary">
-                    <CheckCircle size={17} />
-                    <span>Save Announcement Live</span>
-                  </button>
+                  <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                    <button type="submit" className="btn btn-primary">
+                      <CheckCircle size={17} />
+                      <span>Save Announcement Live</span>
+                    </button>
+                    {banner.id && (
+                      <button
+                        type="button"
+                        onClick={handleDeleteBanner}
+                        className="btn btn-secondary text-red"
+                        title="Delete this banner from database"
+                      >
+                        <Trash2 size={16} />
+                        <span>Delete Banner</span>
+                      </button>
+                    )}
+                  </div>
                 </form>
               </div>
             </div>
@@ -1823,6 +2022,196 @@ export default function AdminPortalPage({ onNavigateHome }) {
                     <>
                       <CheckCircle size={16} />
                       <span>{editingCategory ? 'Update Category' : 'Save Category'}</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ==================================================== */}
+      {/* ADD / EDIT ORDER MODAL (FULL DATABASE CRUD)          */}
+      {/* ==================================================== */}
+      {showOrderModal && (
+        <div className="modal-overlay" style={{ zIndex: 600 }}>
+          <div className="modal-content" style={{ maxWidth: '600px' }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <div>
+                <h3 style={{ fontSize: '1.4rem', fontWeight: 800 }}>
+                  {editingOrder ? `Edit Order #${editingOrder.orderNumber}` : 'Create Manual Customer Order'}
+                </h3>
+                <p style={{ fontSize: '0.85rem', color: '#7A8B80' }}>
+                  Directly creates and modifies order records in the live PostgreSQL database.
+                </p>
+              </div>
+              <button onClick={() => setShowOrderModal(false)} className="modal-close-btn">
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveOrder}>
+              <div className="checkout-grid-2col">
+                <div className="form-group">
+                  <label className="form-label">Customer Name *</label>
+                  <input
+                    type="text"
+                    required
+                    value={orderForm.customerName}
+                    onChange={(e) => setOrderForm({ ...orderForm, customerName: e.target.value })}
+                    className="form-input"
+                    placeholder="e.g. Gurpreet Singh"
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Customer Phone *</label>
+                  <input
+                    type="text"
+                    required
+                    value={orderForm.customerPhone}
+                    onChange={(e) => setOrderForm({ ...orderForm, customerPhone: e.target.value })}
+                    className="form-input"
+                    placeholder="e.g. 9876543210"
+                  />
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Delivery Address *</label>
+                <input
+                  type="text"
+                  required
+                  value={orderForm.address}
+                  onChange={(e) => setOrderForm({ ...orderForm, address: e.target.value })}
+                  className="form-input"
+                  placeholder="Street / House address"
+                />
+              </div>
+
+              <div className="checkout-grid-2col">
+                <div className="form-group">
+                  <label className="form-label">City / District</label>
+                  <input
+                    type="text"
+                    value={orderForm.city}
+                    onChange={(e) => setOrderForm({ ...orderForm, city: e.target.value })}
+                    className="form-input"
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Pincode</label>
+                  <input
+                    type="text"
+                    value={orderForm.pincode}
+                    onChange={(e) => setOrderForm({ ...orderForm, pincode: e.target.value })}
+                    className="form-input"
+                  />
+                </div>
+              </div>
+
+              <div className="checkout-grid-2col">
+                <div className="form-group">
+                  <label className="form-label">Total Amount in ₹ *</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    required
+                    value={orderForm.totalAmount}
+                    onChange={(e) => setOrderForm({ ...orderForm, totalAmount: e.target.value })}
+                    className="form-input"
+                    placeholder="e.g. 1450"
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Payment Method</label>
+                  <select
+                    value={orderForm.paymentMethod}
+                    onChange={(e) => setOrderForm({ ...orderForm, paymentMethod: e.target.value })}
+                    className="form-select"
+                  >
+                    <option value="WHATSAPP">WhatsApp Direct Order</option>
+                    <option value="RAZORPAY">Razorpay / UPI</option>
+                    <option value="CASH">Cash on Delivery</option>
+                    <option value="BANK_TRANSFER">Direct Bank Transfer</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="checkout-grid-2col">
+                <div className="form-group">
+                  <label className="form-label">Fulfillment Status</label>
+                  <select
+                    value={orderForm.orderStatus}
+                    onChange={(e) => setOrderForm({ ...orderForm, orderStatus: e.target.value })}
+                    className="form-select"
+                  >
+                    <option value="PENDING">Pending Confirmation</option>
+                    <option value="CONFIRMED">Confirmed</option>
+                    <option value="PROCESSING">Processing & Packing</option>
+                    <option value="SHIPPED">Shipped / In Transit</option>
+                    <option value="DELIVERED">Delivered</option>
+                    <option value="CANCELLED">Cancelled</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Payment Status</label>
+                  <select
+                    value={orderForm.paymentStatus}
+                    onChange={(e) => setOrderForm({ ...orderForm, paymentStatus: e.target.value })}
+                    className="form-select"
+                  >
+                    <option value="PENDING">Pending</option>
+                    <option value="COMPLETED">Completed / Paid</option>
+                    <option value="FAILED">Failed</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Ordered Items Summary</label>
+                <input
+                  type="text"
+                  value={orderForm.itemsText}
+                  onChange={(e) => setOrderForm({ ...orderForm, itemsText: e.target.value })}
+                  className="form-input"
+                  placeholder="e.g. 2x Pure Vedic Bilona Ghee (1 Litre)"
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Notes (Optional)</label>
+                <textarea
+                  rows={2}
+                  value={orderForm.notes}
+                  onChange={(e) => setOrderForm({ ...orderForm, notes: e.target.value })}
+                  className="form-textarea"
+                  placeholder="Special instructions or delivery notes..."
+                />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '20px' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowOrderModal(false)}
+                  className="btn btn-secondary"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingOrder}
+                  className="btn btn-primary"
+                >
+                  {savingOrder ? (
+                    <>
+                      <RefreshCw size={16} className="spin" />
+                      <span>Saving Order...</span>
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle size={16} />
+                      <span>{editingOrder ? 'Update Order' : 'Create Order'}</span>
                     </>
                   )}
                 </button>

@@ -120,10 +120,11 @@ router.get('/track/:orderNumber', async (req, res) => {
 router.patch('/:id/status', verifyAdminToken, async (req, res) => {
   try {
     const { id } = req.params;
-    const { orderStatus, paymentStatus } = req.body;
+    const { orderStatus, paymentStatus, status } = req.body;
 
+    const finalStatus = orderStatus || status;
     const updateData = {};
-    if (orderStatus) updateData.orderStatus = orderStatus;
+    if (finalStatus) updateData.orderStatus = finalStatus;
     if (paymentStatus) updateData.paymentStatus = paymentStatus;
 
     const updated = await prisma.order.update({
@@ -135,6 +136,61 @@ router.patch('/:id/status', verifyAdminToken, async (req, res) => {
   } catch (error) {
     console.error('Update order status error:', error);
     res.status(500).json({ success: false, message: 'Failed to update order status' });
+  }
+});
+
+// PUT /api/orders/:id (Admin Only - Update full order details)
+router.put('/:id', verifyAdminToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const {
+      customerName,
+      customerPhone,
+      address,
+      city,
+      pincode,
+      totalAmount,
+      orderStatus,
+      paymentStatus,
+      paymentMethod,
+      notes
+    } = req.body;
+
+    const updateData = {};
+    if (customerName !== undefined) updateData.customerName = customerName;
+    if (customerPhone !== undefined) updateData.customerPhone = customerPhone;
+    if (address !== undefined) updateData.address = address;
+    if (city !== undefined) updateData.city = city;
+    if (pincode !== undefined) updateData.pincode = pincode;
+    if (totalAmount !== undefined) updateData.totalAmount = parseFloat(totalAmount);
+    if (orderStatus !== undefined) updateData.orderStatus = orderStatus;
+    if (paymentStatus !== undefined) updateData.paymentStatus = paymentStatus;
+    if (paymentMethod !== undefined) updateData.paymentMethod = paymentMethod;
+    if (notes !== undefined) updateData.notes = notes;
+
+    const updated = await prisma.order.update({
+      where: { id },
+      data: updateData,
+    });
+
+    res.json({ success: true, message: 'Order updated successfully', data: updated });
+  } catch (error) {
+    console.error('Update order error:', error);
+    res.status(500).json({ success: false, message: 'Failed to update order' });
+  }
+});
+
+// DELETE /api/orders/:id (Admin Only - Delete order)
+router.delete('/:id', verifyAdminToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    await prisma.order.delete({
+      where: { id }
+    });
+    res.json({ success: true, message: 'Order deleted successfully from database' });
+  } catch (error) {
+    console.error('Delete order error:', error);
+    res.status(500).json({ success: false, message: 'Failed to delete order' });
   }
 });
 
