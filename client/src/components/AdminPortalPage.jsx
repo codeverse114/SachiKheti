@@ -759,7 +759,7 @@ export default function AdminPortalPage({ onNavigateHome }) {
       )}
 
       {/* Main Workspace Layout (Sidebar + Content View) */}
-      <div className="admin-portal-body">
+      <div className="admin-portal-body admin-portal-layout">
         {/* Navigation Sidebar */}
         <aside className={`admin-portal-sidebar ${sidebarOpen ? 'open' : ''}`}>
           <div className="admin-sidebar-nav">
@@ -832,7 +832,7 @@ export default function AdminPortalPage({ onNavigateHome }) {
         )}
 
         {/* Content View Area */}
-        <main className="admin-portal-content">
+        <main className="admin-portal-content admin-portal-main">
           {/* ==================================================== */}
           {/* TAB 1: OVERVIEW METRICS                              */}
           {/* ==================================================== */}
