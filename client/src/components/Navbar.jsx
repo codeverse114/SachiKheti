@@ -8,6 +8,17 @@ const BRAND_NAMES = [
   { text: 'सच्ची खेती', lang: 'हिन्दी', className: 'font-hindi' },
 ];
 
+// Format category names for clean single-line desktop navbar
+const formatNavCategory = (name) => {
+  if (!name) return '';
+  if (name.includes('Machinery')) return 'Machinery';
+  if (name.includes('Produce') || name.includes('Honey') || name.includes('Oil')) return 'Produce & Oils';
+  if (name.includes('Dairy')) return 'Pure Dairy';
+  if (name.includes('Manure') || name.includes('Fertilizer')) return 'Organic Manure';
+  if (name.includes('Sweets') || name.includes('Pinni')) return 'Desi Sweets';
+  return name.length > 15 ? name.substring(0, 14) + '…' : name;
+};
+
 export default function Navbar({ currentPath = '/', onNavigate, onOpenAdmin, onOpenTracker, onSelectCategory }) {
   const { totalItems, setIsCartOpen } = useCart();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -102,12 +113,13 @@ export default function Navbar({ currentPath = '/', onNavigate, onOpenAdmin, onO
                   <a
                     href={`#catalog?category=${cat.slug}`}
                     className="nav-link"
+                    title={cat.name}
                     onClick={(e) => {
                       e.preventDefault();
                       handleNavClick(cat.slug);
                     }}
                   >
-                    {cat.name}
+                    {formatNavCategory(cat.name)}
                   </a>
                 </li>
               ))}

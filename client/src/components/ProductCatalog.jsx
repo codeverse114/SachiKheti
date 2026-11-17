@@ -129,11 +129,6 @@ export default function ProductCatalog({ selectedCategory, onSelectCategory, onO
                 className={`filter-chip ${selectedCategory === cat.id ? 'active' : ''}`}
               >
                 <span>{cat.label}</span>
-                {cat.punjabi && (
-                  <span className="filter-chip-punjabi font-gurmukhi">
-                    ({cat.punjabi})
-                  </span>
-                )}
               </button>
             ))}
           </div>
